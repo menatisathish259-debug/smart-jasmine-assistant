@@ -65,8 +65,34 @@ def render_flower_analysis(is_tamil: bool) -> None:
                     f"✓ Image Verified: {img_metadata['width']}x{img_metadata['height']} px | "
                     f"{img_metadata['format']} | {img_metadata['size_kb']} KB"
                 )
+
+                # Experimental Model Inference (Phase 5 Integration)
+                from src.models.inference import is_model_available, predict_flower_stage
+                if is_model_available():
+                    st.markdown("---")
+                    st.markdown("#### 🤖 Experimental AI Inspection (MobileNetV2)")
+                    if st.button("Run AI Maturity Prediction", key="btn_run_ai_pred", use_container_width=True):
+                        with st.spinner("Analyzing flower features..."):
+                            pred = predict_flower_stage(image)
+                            if pred["status"] == "SUCCESS":
+                                st.markdown(
+                                    f"""
+                                    <div style="background:#f0fdf4; border:1px solid #86efac; border-radius:10px; padding:0.8rem; margin:0.5rem 0;">
+                                        <b>Predicted Stage:</b> {pred['predicted_stage']} ({pred['predicted_stage_ta']})<br>
+                                        <b>Model Confidence:</b> {pred['confidence_pct']}% (Uncertainty: {pred['uncertainty_score']})
+                                    </div>
+                                    """,
+                                    unsafe_allow_html=True,
+                                )
+                                st.warning(pred["disclaimer"])
+                                with st.expander("📊 View Probability Distribution", expanded=False):
+                                    for stg, prob in pred["probabilities"].items():
+                                        st.write(f"• {stg}: **{prob:.1f}%**")
+                else:
+                    st.info("ℹ️ AI Model checkpoint will activate here after training in Phase 5.")
         else:
             st.info("ℹ️ Upload a photograph of individual jasmine buds or a whole flower cluster to inspect.")
+
 
     with col_details:
         st.markdown("### 🏷️ 2. Grower Assessment & Ground Truth (விவசாயியின் மதிப்பீடு)")

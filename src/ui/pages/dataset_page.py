@@ -120,13 +120,15 @@ def render_dataset_page(is_tamil: bool) -> None:
     # -----------------------------------------------------------------------
     # Multi-Tab Workflow
     # -----------------------------------------------------------------------
-    tab_label, tab_dups, tab_split, tab_guide, tab_whole = st.tabs([
+    tab_label, tab_dups, tab_split, tab_train, tab_guide, tab_whole = st.tabs([
         "🏷️ Image Labeling" if not is_tamil else "🏷️ லேபிளிங் பணி",
         "🔍 Duplicate Audit" if not is_tamil else "🔍 நகல்கள் கண்டறிதல்",
         "✂️ Train/Val/Test Splits" if not is_tamil else "✂️ தரவு பிரிப்பு",
+        "🧠 Model Training & Eval" if not is_tamil else "🧠 மாதிரி பயிற்சி & மதிப்பீடு",
         "📸 Field Photography Guide" if not is_tamil else "📸 புகைப்பட நெறிமுறை",
         "🌿 Whole-Plant Holding" if not is_tamil else "🌿 முழு செடி சேமிப்பு",
     ])
+
 
     # -----------------------------------------------------------------------
     # Tab 1: Labeling Workflow
@@ -263,9 +265,70 @@ def render_dataset_page(is_tamil: bool) -> None:
                 st.json(split_res["split_summary"])
 
     # -----------------------------------------------------------------------
-    # Tab 4: Field Photography Protocol
+    # Tab 4: MobileNetV2 Model Training & Evaluation (Phase 5)
+    # -----------------------------------------------------------------------
+    with tab_train:
+        st.markdown("### 🧠 MobileNetV2 Transfer Learning Pipeline")
+        st.caption(
+            "Fine-tunes a pretrained MobileNetV2 feature extractor on leak-free dataset partitions. "
+            "Evaluates confusion matrices and per-class precision/recall on the held-out test split."
+        )
+
+        from src.models.training import train_flower_classifier, DEFAULT_MODEL_PATH
+        from src.models.evaluator import evaluate_model
+        from src.models.inference import is_model_available
+
+        col_cfg, col_act = st.columns([1, 1])
+        with col_cfg:
+            epochs = st.slider("Training Epochs:", min_value=3, max_value=30, value=8, step=1, key="tr_epochs")
+            batch_sz = st.selectbox("Batch Size:", options=[4, 8, 16], index=1, key="tr_batch")
+            st.write(f"**Target Model Checkpoint:** `{DEFAULT_MODEL_PATH.name}`")
+            st.write(f"**Model Status:** {'🟢 Active Checkpoint Found' if is_model_available() else '⚪ No Model Trained Yet'}")
+
+        with col_act:
+            if st.button("🚀 Train MobileNetV2 Classifier", type="primary", key="btn_start_train"):
+                with st.spinner("Executing transfer-learning pipeline..."):
+                    res = train_flower_classifier(epochs=epochs, batch_size=batch_sz)
+                    if res["status"] == "COMPLETED":
+                        st.success(f"✓ Model training completed in {res['elapsed_seconds']}s! Checkpoint saved.")
+                        st.write(f"• Final Train Accuracy: **{res['final_train_accuracy'] * 100:.1f}%**")
+                        st.write(f"• Final Validation Accuracy: **{res['final_val_accuracy'] * 100:.1f}%**")
+                        if res.get("is_experimental"):
+                            st.warning(res["experimental_warning"])
+                    else:
+                        st.error(f"❌ Training aborted: {res.get('message')}")
+
+            if is_model_available():
+                if st.button("📊 Evaluate on Independent Test Set", key="btn_eval_test"):
+                    with st.spinner("Running evaluation on held-out test split..."):
+                        eval_res = evaluate_model()
+                        if eval_res["status"] == "COMPLETED":
+                            st.success(f"✓ Evaluated on {eval_res['total_test_samples']} test images! Test Accuracy: {eval_res['overall_test_accuracy'] * 100:.1f}%")
+                            st.warning(eval_res["disclaimer"])
+
+                            st.markdown("#### Per-Class Metrics:")
+                            pcm_df = pd.DataFrame(eval_res["per_class_metrics"]).T
+                            st.dataframe(pcm_df, use_container_width=True)
+
+                            st.markdown("#### Confusion Matrix:")
+                            cm_df = pd.DataFrame(
+                                eval_res["confusion_matrix"],
+                                index=[f"Actual {s}" for s in eval_res["stages"]],
+                                columns=[f"Pred {s}" for s in eval_res["stages"]],
+                            )
+                            st.dataframe(cm_df, use_container_width=True)
+
+                            st.markdown("#### Commercial Harvest Failure Risks:")
+                            st.write(f"• Immature buds misclassified as ready: **{eval_res['critical_commercial_risks']['premature_plucking_false_positives']}**")
+                            st.write(f"• Damaged buds misclassified as ready: **{eval_res['critical_commercial_risks']['damaged_bud_false_positives']}**")
+                        else:
+                            st.error(f"❌ Evaluation error: {eval_res.get('message')}")
+
+    # -----------------------------------------------------------------------
+    # Tab 5: Field Photography Protocol
     # -----------------------------------------------------------------------
     with tab_guide:
+
         st.markdown("### 📸 Field Photography Guidelines for the Family Garden")
         st.caption("Follow these rules to gather high-utility, diverse jasmine photographs:")
 
