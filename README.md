@@ -127,12 +127,12 @@ setup_env.bat
 | **Phase 3** | SQLite database, relational schema & persistent records | ✅ Completed |
 | **Phase 4** | Dataset organization, duplicate audit & labeling workflow | ✅ Completed |
 | **Phase 5** | Flower-stage classification model (MobileNetV2 transfer learning) | ✅ Completed |
-| **Phase 6** | Model evaluation, error analysis & uncertainty | ⏳ Next |
+| **Phase 6** | Model evaluation, error analysis & uncertainty | ⏳ In Progress |
 | **Phase 7** | Whole-plant bud detection (YOLO) | 📅 Planned |
-| **Phase 8** | Plant health observations & damage analysis | 📅 Planned |
-| **Phase 9** | Fertilizer identification & nutrient calculations | 📅 Planned |
-| **Phase 10** | Soil health & weather API integration | 📅 Planned |
-| **Phase 11** | Evidence-based recommendation engine | 📅 Planned |
+| **Phase 8** | Plant health observations, differential hypotheses & scouting | ✅ Completed |
+| **Phase 9** | Fertilizer label verification, nutrient accounting & TNAU budget | ✅ Completed |
+| **Phase 10** | Soil health & weather integration with agronomic advisories | ✅ Completed |
+| **Phase 11** | Evidence-based recommendation engine | ⏳ Next |
 | **Phase 12** | Integrated dashboard, testing & deployment | 📅 Planned |
 
 
