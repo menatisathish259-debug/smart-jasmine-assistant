@@ -126,8 +126,8 @@ setup_env.bat
 | **Phase 2** | Responsive Streamlit interface & mobile layout (7 pages) | ✅ Completed |
 | **Phase 3** | SQLite database, relational schema & persistent records | ✅ Completed |
 | **Phase 4** | Dataset organization, duplicate audit & labeling workflow | ✅ Completed |
-| **Phase 5** | Flower-stage classification model (MobileNetV2 / CNN) | ⏳ Next |
-| **Phase 6** | Model evaluation, error analysis & uncertainty | 📅 Planned |
+| **Phase 5** | Flower-stage classification model (MobileNetV2 transfer learning) | ✅ Completed |
+| **Phase 6** | Model evaluation, error analysis & uncertainty | ⏳ Next |
 | **Phase 7** | Whole-plant bud detection (YOLO) | 📅 Planned |
 | **Phase 8** | Plant health observations & damage analysis | 📅 Planned |
 | **Phase 9** | Fertilizer identification & nutrient calculations | 📅 Planned |
