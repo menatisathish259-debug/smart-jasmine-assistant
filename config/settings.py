@@ -35,7 +35,8 @@ DEFAULT_DB_PATH = Path(os.getenv("DB_PATH", str(DB_DIR / "jasmine_farm.db")))
 # Jasminum sambac Domain Parameters & Constants
 # ---------------------------------------------------------------------------
 CROP_NAME_EN = "Jasminum sambac"
-CROP_NAME_TA = "குண்டு மல்லி (Malli)"
+CROP_NAME_TA = "குண்டு மல்லி"
+CROP_NAME_TE = "గుండు మల్లె"
 DEFAULT_FARM_SIZE_ACRES = 0.5  # Typical 1/4 to 1 acre family plot
 
 # Flower Maturity Classification Classes (Module A & B)
@@ -46,12 +47,19 @@ FLOWER_STAGES = [
     "DAMAGED_OR_ABNORMAL",
 ]
 
-# Mobile-friendly Tamil Translations for UI Localization
+# Pure Language Translations for UI Localization
 TAMIL_STAGE_TRANSLATIONS = {
-    "READY_TO_PLUCK": "பறிக்கத் தயார் (Harvest Ready)",
-    "NOT_READY": "இன்னும் முதிரவில்லை (Not Ready)",
-    "TOO_OPEN": "அதிகம் விரிந்தது (Over-blown / Too Open)",
-    "DAMAGED_OR_ABNORMAL": "சேதமடைந்தது / புழு தாக்குதல் (Damaged / Abnormal)",
+    "READY_TO_PLUCK": "பறிக்கத் தயார்",
+    "NOT_READY": "இன்னும் முதிரவில்லை",
+    "TOO_OPEN": "அதிகம் விரிந்தது",
+    "DAMAGED_OR_ABNORMAL": "சேதமடைந்தது அல்லது அசாதாரணமானது",
+}
+
+TELUGU_STAGE_TRANSLATIONS = {
+    "READY_TO_PLUCK": "కోతకు సిద్ధం",
+    "NOT_READY": "ఇంకా సిద్ధంగా లేదు",
+    "TOO_OPEN": "బాగా విచ్చుకుంది",
+    "DAMAGED_OR_ABNORMAL": "దెబ్బతిన్నది లేదా అసాధారణం",
 }
 
 # Soil Health Reference Parameters (Module F)

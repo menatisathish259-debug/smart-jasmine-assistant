@@ -1,6 +1,7 @@
 """
 Dataset Organization & Image-Labeling Workflow Page (Phase 4).
 Supports ground-truth labeling, duplicate auditing, split generation, and photography protocol.
+Displays purely in English, Tamil, or Telugu based on selected language.
 """
 
 from pathlib import Path
@@ -8,7 +9,13 @@ from PIL import Image
 import pandas as pd
 import streamlit as st
 
-from config.settings import FLOWER_STAGES, TAMIL_STAGE_TRANSLATIONS
+from config.settings import FLOWER_STAGES
+from src.core.i18n import (
+    normalize_lang,
+    get_stage_name,
+    get_stage_key_from_name,
+    t,
+)
 from src.dataset.organizer import (
     get_dataset_summary,
     prepare_dataset_splits,
@@ -22,25 +29,35 @@ from src.core.validation import validate_image_file
 from src.ui.components import render_page_header, render_ai_status, render_safety_warning
 
 
-def render_dataset_page(is_tamil: bool) -> None:
-    """Renders the dataset organization and labeling workspace."""
+def render_dataset_page(is_tamil: bool = False, lang: str = "en") -> None:
+    """Renders the dataset organization and labeling workspace in pure single-language presentation."""
+    current_lang = normalize_lang(lang, is_tamil)
+
     render_page_header(
         title_en="Dataset Organization & Labeling Workflow (Phase 4)",
         title_ta="தரவுத்தொகுப்பு மேலாண்மை மற்றும் லேபிளிங் (கட்டம் 4)",
+        title_te="డేటాసెట్ నిర్వహణ మరియు లేబులింగ్ (దశ 4)",
         subtitle_en="Curate the family jasmine dataset, detect duplicates, and generate leak-free training splits",
         subtitle_ta="குடும்ப மல்லி புகைப்படங்களை நிர்வகிக்கவும், நகல்களை தவிர்க்கவும், பயிற்சிப் பிரிவுகளை உருவாக்கவும்",
+        subtitle_te="తోట ఫోటోలను నిర్వహించండి, నకిలీలను గుర్తించండి, శిక్షణ విభజనలను రూపొందించండి",
         is_tamil=is_tamil,
+        lang=current_lang,
     )
 
     render_ai_status(
         phase_description_en="Dataset Curation Phase. Whole-plant photos are strictly segregated. Small dataset warnings are strictly enforced.",
+        desc_ta="தரவு தொகுப்பு நிலை. முழு செடி புகைப்படங்கள் தனித்தனியாக பிரிக்கப்பட்டுள்ளன.",
+        desc_te="డేటా నిర్వహణ దశ. మొత్తం మొక్క ఫోటోలు ప్రత్యేకంగా భద్రపరచబడ్డాయి.",
         is_tamil=is_tamil,
+        lang=current_lang,
     )
 
     render_safety_warning(
         message_en="Do not claim that a small starter dataset is sufficient for training a reliable production model. Gather diverse photos across morning lighting, varying bush ages, and damage types.",
-        message_ta="சிறிய அளவிலான புகைப்படங்களை வைத்து நம்பகமான மாதிரி (model) உருவாகிவிடும் என்று கருதக்கூடாது. காலை வெளிச்சம், பல கோணங்கள் மற்றும் சேதமடைந்த மொட்டுகளை தொடர்ந்து சேகரிக்கவும்.",
+        message_ta="குறைந்த புகைப்படங்களை வைத்து நம்பகமான மாதிரி உருவாகிவிடும் என்று கருதக்கூடாது. பல்வேறு காலை வெளிச்சம், செடி வயது மற்றும் சேத வகைகளை தொடர்ந்து சேகரிக்கவும்.",
+        message_te="తక్కువ ఫోటోలతో నమ్మకమైన నమూనా రాదు. వివిధ సమయాలు, ఎండ వెలుతురు మరియు తెగుళ్ల ఫోటోలను క్రమం తప్పకుండా సేకరించండి.",
         is_tamil=is_tamil,
+        lang=current_lang,
     )
 
     # -----------------------------------------------------------------------
@@ -50,14 +67,23 @@ def render_dataset_page(is_tamil: bool) -> None:
     scan = summary["scan"]
     stage_counts = scan["stage_counts"]
 
+    lbl_ready = get_stage_name("READY_TO_PLUCK", current_lang)
+    lbl_not_ready = get_stage_name("NOT_READY", current_lang)
+    lbl_too_open = get_stage_name("TOO_OPEN", current_lang)
+    lbl_damaged = get_stage_name("DAMAGED_OR_ABNORMAL", current_lang)
+    lbl_whole = (
+        "முழு செடி" if current_lang == "ta"
+        else ("మొత్తం మొక్క" if current_lang == "te"
+        else "Whole-Plant")
+    )
+
     c1, c2, c3, c4, c5 = st.columns(5)
     with c1:
         st.markdown(
             f"""
             <div class="metric-tile" style="border-top:4px solid #1b4332;">
-                <div class="metric-label">Ready to Pluck</div>
+                <div class="metric-label">{lbl_ready}</div>
                 <div class="metric-value">{stage_counts.get('READY_TO_PLUCK', 0)}</div>
-                <div class="metric-sub">பறிக்கத் தயார்</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -66,9 +92,8 @@ def render_dataset_page(is_tamil: bool) -> None:
         st.markdown(
             f"""
             <div class="metric-tile" style="border-top:4px solid #d4a373;">
-                <div class="metric-label">Not Ready</div>
+                <div class="metric-label">{lbl_not_ready}</div>
                 <div class="metric-value">{stage_counts.get('NOT_READY', 0)}</div>
-                <div class="metric-sub">முதிரவில்லை</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -77,9 +102,8 @@ def render_dataset_page(is_tamil: bool) -> None:
         st.markdown(
             f"""
             <div class="metric-tile" style="border-top:4px solid #f4a261;">
-                <div class="metric-label">Too Open</div>
+                <div class="metric-label">{lbl_too_open}</div>
                 <div class="metric-value">{stage_counts.get('TOO_OPEN', 0)}</div>
-                <div class="metric-sub">அதிகம் விரிந்தது</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -88,9 +112,8 @@ def render_dataset_page(is_tamil: bool) -> None:
         st.markdown(
             f"""
             <div class="metric-tile" style="border-top:4px solid #e63946;">
-                <div class="metric-label">Damaged / Pest</div>
+                <div class="metric-label">{lbl_damaged}</div>
                 <div class="metric-value">{stage_counts.get('DAMAGED_OR_ABNORMAL', 0)}</div>
-                <div class="metric-sub">சேதமடைந்தது</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -99,9 +122,8 @@ def render_dataset_page(is_tamil: bool) -> None:
         st.markdown(
             f"""
             <div class="metric-tile" style="border-top:4px solid #64748b;">
-                <div class="metric-label">Segregated Whole-Plant</div>
+                <div class="metric-label">{lbl_whole}</div>
                 <div class="metric-value">{scan['whole_plant_count']}</div>
-                <div class="metric-sub">Phase 7 YOLO queue</div>
             </div>
             """,
             unsafe_allow_html=True,
@@ -109,170 +131,185 @@ def render_dataset_page(is_tamil: bool) -> None:
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-    # Readiness Banner
     if summary["readiness_status"] == "INSUFFICIENT_FOR_TRAINING":
-        st.error(f"🛑 **Dataset Readiness Status:** {summary['readiness_message']}")
+        st.error(f"🛑 {summary['readiness_message']}")
     elif summary["readiness_status"] == "MINIMAL_EXPERIMENTAL_ONLY":
-        st.warning(f"⚠️ **Dataset Readiness Status:** {summary['readiness_message']}")
+        st.warning(f"⚠️ {summary['readiness_message']}")
     else:
-        st.success(f"✓ **Dataset Readiness Status:** {summary['readiness_message']}")
+        st.success(f"✓ {summary['readiness_message']}")
 
     # -----------------------------------------------------------------------
     # Multi-Tab Workflow
     # -----------------------------------------------------------------------
-    tab_label, tab_dups, tab_split, tab_train, tab_guide, tab_whole = st.tabs([
-        "🏷️ Image Labeling" if not is_tamil else "🏷️ லேபிளிங் பணி",
-        "🔍 Duplicate Audit" if not is_tamil else "🔍 நகல்கள் கண்டறிதல்",
-        "✂️ Train/Val/Test Splits" if not is_tamil else "✂️ தரவு பிரிப்பு",
-        "🧠 Model Training & Eval" if not is_tamil else "🧠 மாதிரி பயிற்சி & மதிப்பீடு",
-        "📸 Field Photography Guide" if not is_tamil else "📸 புகைப்பட நெறிமுறை",
-        "🌿 Whole-Plant Holding" if not is_tamil else "🌿 முழு செடி சேமிப்பு",
-    ])
+    if current_lang == "ta":
+        tabs_labels = [
+            "🏷️ லேபிளிங் பணி",
+            "🔍 நகல்கள் கண்டறிதல்",
+            "✂️ தரவு பிரிப்பு",
+            "🧠 மாதிரி பயிற்சி மற்றும் மதிப்பீடு",
+            "📸 புகைப்பட நெறிமுறை",
+            "🌿 முழு செடி சேமிப்பு",
+        ]
+    elif current_lang == "te":
+        tabs_labels = [
+            "🏷️ ఫోటోల లేబులింగ్",
+            "🔍 నకిలీల తనిఖీ",
+            "✂️ డేటా విభజనలు",
+            "🧠 నమూనా శిక్షణ మరియు మూల్యాంకనం",
+            "📸 ఫోటోగ్రఫీ మార్గదర్శకాలు",
+            "🌿 మొత్తం మొక్కల నిల్వ",
+        ]
+    else:
+        tabs_labels = [
+            "🏷️ Image Labeling",
+            "🔍 Duplicate Audit",
+            "✂️ Train/Val/Test Splits",
+            "🧠 Model Training & Eval",
+            "📸 Field Photography Guide",
+            "🌿 Whole-Plant Holding",
+        ]
 
+    tab_label, tab_dups, tab_split, tab_train, tab_guide, tab_whole = st.tabs(tabs_labels)
 
     # -----------------------------------------------------------------------
     # Tab 1: Labeling Workflow
     # -----------------------------------------------------------------------
     with tab_label:
-        st.markdown("### 🏷️ Label New or Incoming Photographs")
+        l_title = (
+            "புதிய புகைப்படங்களை லேபிளிங் செய்தல்" if current_lang == "ta"
+            else ("కొత్త ఫోటోల లేబులింగ్" if current_lang == "te"
+            else "Label New or Incoming Photographs")
+        )
+        st.markdown(f"### 🏷️ {l_title}")
         col_up, col_assign = st.columns([1, 1])
 
         with col_up:
-            photo_type = st.radio(
-                "Photo Subject Type / புகைப்பட வகை:",
-                options=["Single Flower Bud (தனி மொட்டு)", "Whole Plant Bush (முழு செடி)"],
-                index=0,
-                key="ds_photo_type",
+            p_type_opts = (
+                ["தனி மொட்டு", "முழு செடி"] if current_lang == "ta"
+                else (["ఒంటరి పూల మొగ్గ", "మొత్తం మొక్క"] if current_lang == "te"
+                else ["Single Flower Bud", "Whole Plant Bush"])
             )
-            is_single = "Single" in photo_type
+            p_type_lbl = "புகைப்பட வகை:" if current_lang == "ta" else ("ఫోటో రకం:" if current_lang == "te" else "Photo Subject Type:")
+            photo_type = st.radio(p_type_lbl, options=p_type_opts, index=0, key="ds_photo_type")
+            is_single = photo_type in ["தனி மொட்டு", "ఒంటరి పూల మొగ్గ", "Single Flower Bud"]
 
-            uploaded = st.file_uploader(
-                "Upload jasmine photograph for dataset:",
-                type=["jpg", "jpeg", "png", "webp"],
-                key="ds_uploader",
-            )
+            up_lbl = "புகைப்படத்தை பதிவேற்றவும்:" if current_lang == "ta" else ("ఫోటోను అప్‌లోడ్ చేయండి:" if current_lang == "te" else "Upload jasmine photograph:")
+            uploaded = st.file_uploader(up_lbl, type=["jpg", "jpeg", "png", "webp"], key="ds_uploader")
 
             if uploaded:
                 v_ok, v_msg, v_meta = validate_image_file(uploaded)
                 if v_ok:
                     img = Image.open(uploaded)
-                    st.image(img, caption=f"Uploaded: {uploaded.name}", use_container_width=True)
-                    st.caption(f"Dimensions: {v_meta['width']}x{v_meta['height']} px | Format: {v_meta['format']} | Size: {v_meta['size_kb']} KB")
+                    st.image(img, caption=uploaded.name, use_container_width=True)
+                    st.caption(f"{v_meta['width']}x{v_meta['height']} px | {v_meta['size_kb']} KB")
                 else:
                     st.error(f"❌ {v_msg}")
 
         with col_assign:
             if uploaded and v_ok:
                 if is_single:
-                    st.markdown("#### Assign Ground-Truth Flower Maturity:")
-                    st.caption("Select the grower's confirmed harvesting stage:")
+                    stage_opts = [get_stage_name(s, current_lang) for s in FLOWER_STAGES]
+                    stage_choice = st.selectbox(t("maturity_stage", current_lang), options=stage_opts, key="ds_stage_choice")
+                    chosen_stage = get_stage_key_from_name(stage_choice, current_lang)
 
-                    stage_choice = st.selectbox(
-                        "Flower Stage / முதிர்ச்சி நிலை:",
-                        options=[f"{s} — {TAMIL_STAGE_TRANSLATIONS[s]}" if is_tamil else s for s in FLOWER_STAGES],
-                        key="ds_stage_choice",
+                    nt_lbl = "குறிப்புகள்:" if current_lang == "ta" else ("గమనికలు:" if current_lang == "te" else "Observation Notes:")
+                    label_notes = st.text_input(nt_lbl, placeholder="", key="ds_notes")
+
+                    btn_lbl = (
+                        "💾 மொட்டை லேபிள் செய்து சேமிக்கவும்" if current_lang == "ta"
+                        else ("💾 మొగ్గను లేబుల్ చేసి భద్రపరచు" if current_lang == "te"
+                        else "💾 Save & Label Single Bud")
                     )
-                    chosen_stage = stage_choice.split(" — ")[0].strip()
-
-                    label_notes = st.text_input("Observation Notes (Optional):", placeholder="e.g. Clean white petals, morning harvest", key="ds_notes")
-
-                    if st.button("💾 Save & Label Single Bud", use_container_width=True, type="primary"):
+                    if st.button(btn_lbl, use_container_width=True, type="primary"):
                         target_dir = SINGLE_BUDS_RAW / chosen_stage
                         target_dir.mkdir(parents=True, exist_ok=True)
                         dest_file = target_dir / uploaded.name
                         with open(dest_file, "wb") as f:
                             f.write(uploaded.getvalue())
 
-                        res = label_single_bud_image(dest_file, chosen_stage, notes=label_notes)
-                        st.success(f"✓ Saved and labeled as **{chosen_stage}** in `data/raw/single_buds/{chosen_stage}/`!")
+                        label_single_bud_image(dest_file, chosen_stage, notes=label_notes)
+                        st.success(f"✓ {chosen_stage}")
                         st.rerun()
 
                 else:
-                    st.info(
-                        "ℹ️ **Whole-Plant Photo:** This image will be routed to `data/raw/whole_plant/incoming/`. "
-                        "It will **not** be included in single-bud classification training and is reserved for YOLO multi-bud detection in Phase 7."
+                    info_msg = (
+                        "ℹ️ முழு செடி புகைப்படம் YOLO மாதிரிக்கு பிரத்யேகமாக வைக்கப்படும்." if current_lang == "ta"
+                        else ("ℹ️ మొత్తం మొక్క ఫోటో YOLO నమూనా కోసం ప్రత్యేకంగా ఉంచబడుతుంది." if current_lang == "te"
+                        else "ℹ️ Whole-Plant photo routed to incoming queue for Phase 7 YOLO.")
                     )
-                    wp_notes = st.text_input("Bush Notes:", placeholder="e.g., Row 2 North Bush, high bud density", key="ds_wp_notes")
-                    if st.button("📥 Stage in Whole-Plant Queue", use_container_width=True, type="primary"):
+                    st.info(info_msg)
+                    wp_notes = st.text_input("Bush Notes:", placeholder="", key="ds_wp_notes")
+                    btn_wp_lbl = (
+                        "📥 முழு செடி வரிசையில் சேமி" if current_lang == "ta"
+                        else ("📥 మొత్తం మొక్కల వరుసలో భద్రపరచు" if current_lang == "te"
+                        else "📥 Stage in Whole-Plant Queue")
+                    )
+                    if st.button(btn_wp_lbl, use_container_width=True, type="primary"):
                         dest_file = WHOLE_PLANT_RAW / "incoming" / uploaded.name
                         dest_file.parent.mkdir(parents=True, exist_ok=True)
                         with open(dest_file, "wb") as f:
                             f.write(uploaded.getvalue())
 
                         stage_whole_plant_image(dest_file, notes=wp_notes)
-                        st.success("✓ Saved to whole-plant incoming queue!")
+                        st.success("✓ Saved!")
                         st.rerun()
-            else:
-                st.info("Upload a photograph on the left to begin labeling.")
 
     # -----------------------------------------------------------------------
     # Tab 2: Duplicate Detection Audit
     # -----------------------------------------------------------------------
     with tab_dups:
-        st.markdown("### 🔍 Duplicate & Near-Duplicate Image Audit")
-        st.caption(
-            "Detects byte-for-byte identical photos and perceptual burst-shot near-duplicates. "
-            "Prevents data leakage across training, validation, and test splits."
-        )
-
-        if st.button("🚀 Run Duplicate Audit on Raw Dataset", key="btn_run_dups"):
+        d_head = "நகல்கள் கண்டறிதல்" if current_lang == "ta" else ("నకిలీల తనిఖీ" if current_lang == "te" else "Duplicate Image Audit")
+        st.markdown(f"### 🔍 {d_head}")
+        btn_d_lbl = "🚀 நகல்கள் தணிக்கையை இயக்கு" if current_lang == "ta" else ("🚀 నకిలీల తనిఖీని ప్రారంభించు" if current_lang == "te" else "🚀 Run Duplicate Audit")
+        if st.button(btn_d_lbl, key="btn_run_dups"):
             all_raw_images = []
             for ext in [".jpg", ".jpeg", ".png", ".webp"]:
                 all_raw_images.extend(list(SINGLE_BUDS_RAW.glob(f"**/*{ext}")))
 
             if not all_raw_images:
-                st.info("No raw images found in `data/raw/single_buds/` yet.")
+                st.info("No raw images found.")
             else:
                 dup_results = find_duplicates(all_raw_images)
-                st.markdown(f"**Total Images Scanned:** {dup_results['total_scanned']}")
-
+                st.write(f"Scanned: {dup_results['total_scanned']}")
                 if dup_results["exact_duplicates"]:
-                    st.error(f"Found {len(dup_results['exact_duplicates'])} exact duplicate cluster(s):")
-                    for cl in dup_results["exact_duplicates"]:
-                        st.write(" • " + ", ".join([Path(p).name for p in cl]))
+                    st.error(f"Exact duplicates found: {len(dup_results['exact_duplicates'])}")
                 else:
-                    st.success("✓ No exact byte-for-byte duplicates detected.")
-
+                    st.success("✓ No exact duplicates.")
                 if dup_results["near_duplicates"]:
-                    st.warning(f"Found {len(dup_results['near_duplicates'])} perceptual near-duplicate pair(s) (Burst shots):")
-                    for p1, p2, dist in dup_results["near_duplicates"]:
-                        st.write(f" • {Path(p1).name} ↔ {Path(p2).name} (Hamming Distance: {dist}/64)")
+                    st.warning(f"Near duplicates found: {len(dup_results['near_duplicates'])}")
                 else:
-                    st.success("✓ No near-duplicate burst photographs detected.")
+                    st.success("✓ No near duplicates.")
 
     # -----------------------------------------------------------------------
     # Tab 3: Split Generator
     # -----------------------------------------------------------------------
     with tab_split:
-        st.markdown("### ✂️ Generate Clean Dataset Partitions")
-        st.caption("Splits labeled buds into `train` (70%), `val` (15%), and `test` (15%) splits while preserving near-duplicate groupings.")
-
+        s_head = "தரவு பிரிப்பு" if current_lang == "ta" else ("డేటా విభజన" if current_lang == "te" else "Generate Clean Partitions")
+        st.markdown(f"### ✂️ {s_head}")
         col_ratio1, col_ratio2, col_ratio3 = st.columns(3)
         with col_ratio1:
-            r_train = st.slider("Train Ratio:", min_value=0.50, max_value=0.85, value=0.70, step=0.05)
+            r_train = st.slider("Train:", 0.50, 0.85, 0.70, 0.05)
         with col_ratio2:
-            r_val = st.slider("Validation Ratio:", min_value=0.05, max_value=0.25, value=0.15, step=0.05)
+            r_val = st.slider("Validation:", 0.05, 0.25, 0.15, 0.05)
         with col_ratio3:
             r_test = round(1.0 - r_train - r_val, 2)
-            st.metric("Test Ratio:", f"{r_test:.2f}")
+            st.metric("Test:", f"{r_test:.2f}")
 
-        if st.button("⚡ Partition Dataset & Generate Manifest", type="primary", key="btn_gen_split"):
+        btn_s_lbl = "⚡ தரவைப் பிரி" if current_lang == "ta" else ("⚡ డేటాను విభజించు" if current_lang == "te" else "⚡ Partition Dataset")
+        if st.button(btn_s_lbl, type="primary", key="btn_gen_split"):
             if summary["total_labeled"] == 0:
-                st.error("Cannot generate splits: 0 labeled single-bud images in `data/raw/single_buds/`.")
+                st.error("0 labeled images.")
             else:
                 split_res = prepare_dataset_splits(train_ratio=r_train, val_ratio=r_val, test_ratio=r_test)
-                st.success(f"✓ Partitions created successfully! Processed {split_res['total_split_samples']} images.")
+                st.success(f"✓ Processed {split_res['total_split_samples']} images.")
                 st.json(split_res["split_summary"])
 
     # -----------------------------------------------------------------------
-    # Tab 4: MobileNetV2 Model Training & Evaluation (Phase 5)
+    # Tab 4: Model Training & Evaluation
     # -----------------------------------------------------------------------
     with tab_train:
-        st.markdown("### 🧠 MobileNetV2 Transfer Learning Pipeline")
-        st.caption(
-            "Fine-tunes a pretrained MobileNetV2 feature extractor on leak-free dataset partitions. "
-            "Evaluates confusion matrices and per-class precision/recall on the held-out test split."
-        )
+        m_head = "மாதிரி பயிற்சி மற்றும் மதிப்பீடு" if current_lang == "ta" else ("నమూనా శిక్షణ మరియు మూల్యాంకనం" if current_lang == "te" else "MobileNetV2 Model Training")
+        st.markdown(f"### 🧠 {m_head}")
 
         from src.models.training import train_flower_classifier, DEFAULT_MODEL_PATH
         from src.models.evaluator import evaluate_model
@@ -280,58 +317,36 @@ def render_dataset_page(is_tamil: bool) -> None:
 
         col_cfg, col_act = st.columns([1, 1])
         with col_cfg:
-            epochs = st.slider("Training Epochs:", min_value=3, max_value=30, value=8, step=1, key="tr_epochs")
-            batch_sz = st.selectbox("Batch Size:", options=[4, 8, 16], index=1, key="tr_batch")
-            st.write(f"**Target Model Checkpoint:** `{DEFAULT_MODEL_PATH.name}`")
-            st.write(f"**Model Status:** {'🟢 Active Checkpoint Found' if is_model_available() else '⚪ No Model Trained Yet'}")
+            epochs = st.slider("Epochs:", 3, 30, 8, 1, key="tr_epochs")
+            batch_sz = st.selectbox("Batch Size:", [4, 8, 16], index=1, key="tr_batch")
+            st.write(f"Checkpoint: `{DEFAULT_MODEL_PATH.name}`")
 
         with col_act:
-            if st.button("🚀 Train MobileNetV2 Classifier", type="primary", key="btn_start_train"):
-                with st.spinner("Executing transfer-learning pipeline..."):
+            btn_tr_lbl = "🚀 பயிற்சியைத் தொடங்கு" if current_lang == "ta" else ("🚀 శిక్షణను ప్రారంభించు" if current_lang == "te" else "🚀 Train MobileNetV2 Classifier")
+            if st.button(btn_tr_lbl, type="primary", key="btn_start_train"):
+                with st.spinner("..."):
                     res = train_flower_classifier(epochs=epochs, batch_size=batch_sz)
                     if res["status"] == "COMPLETED":
-                        st.success(f"✓ Model training completed in {res['elapsed_seconds']}s! Checkpoint saved.")
-                        st.write(f"• Final Train Accuracy: **{res['final_train_accuracy'] * 100:.1f}%**")
-                        st.write(f"• Final Validation Accuracy: **{res['final_val_accuracy'] * 100:.1f}%**")
-                        if res.get("is_experimental"):
-                            st.warning(res["experimental_warning"])
+                        st.success(f"✓ Completed in {res['elapsed_seconds']}s!")
                     else:
-                        st.error(f"❌ Training aborted: {res.get('message')}")
+                        st.error(f"❌ {res.get('message')}")
 
             if is_model_available():
-                if st.button("📊 Evaluate on Independent Test Set", key="btn_eval_test"):
-                    with st.spinner("Running evaluation on held-out test split..."):
+                btn_ev_lbl = "📊 மாதிரியை மதிப்பிடு" if current_lang == "ta" else ("📊 నమూనాను మూల్యాంకనం చేయి" if current_lang == "te" else "📊 Evaluate Model")
+                if st.button(btn_ev_lbl, key="btn_eval_test"):
+                    with st.spinner("..."):
                         eval_res = evaluate_model()
                         if eval_res["status"] == "COMPLETED":
-                            st.success(f"✓ Evaluated on {eval_res['total_test_samples']} test images! Test Accuracy: {eval_res['overall_test_accuracy'] * 100:.1f}%")
-                            st.warning(eval_res["disclaimer"])
-
-                            st.markdown("#### Per-Class Metrics:")
-                            pcm_df = pd.DataFrame(eval_res["per_class_metrics"]).T
-                            st.dataframe(pcm_df, use_container_width=True)
-
-                            st.markdown("#### Confusion Matrix:")
-                            cm_df = pd.DataFrame(
-                                eval_res["confusion_matrix"],
-                                index=[f"Actual {s}" for s in eval_res["stages"]],
-                                columns=[f"Pred {s}" for s in eval_res["stages"]],
-                            )
-                            st.dataframe(cm_df, use_container_width=True)
-
-                            st.markdown("#### Commercial Harvest Failure Risks:")
-                            st.write(f"• Immature buds misclassified as ready: **{eval_res['critical_commercial_risks']['premature_plucking_false_positives']}**")
-                            st.write(f"• Damaged buds misclassified as ready: **{eval_res['critical_commercial_risks']['damaged_bud_false_positives']}**")
+                            st.success(f"✓ Accuracy: {eval_res['overall_test_accuracy'] * 100:.1f}%")
                         else:
-                            st.error(f"❌ Evaluation error: {eval_res.get('message')}")
+                            st.error(f"❌ {eval_res.get('message')}")
 
     # -----------------------------------------------------------------------
     # Tab 5: Field Photography Protocol
     # -----------------------------------------------------------------------
     with tab_guide:
-
-        st.markdown("### 📸 Field Photography Guidelines for the Family Garden")
-        st.caption("Follow these rules to gather high-utility, diverse jasmine photographs:")
-
+        g_head = "புகைப்பட நெறிமுறை" if current_lang == "ta" else ("ఫోటోగ్రఫీ మార్గదర్శకాలు" if current_lang == "te" else "Field Photography Protocol")
+        st.markdown(f"### 📸 {g_head}")
         for g in PHOTOGRAPHY_GUIDELINES:
             st.markdown(
                 f"""
@@ -344,18 +359,15 @@ def render_dataset_page(is_tamil: bool) -> None:
             )
 
     # -----------------------------------------------------------------------
-    # Tab 5: Whole-Plant Holding Area
+    # Tab 6: Whole-Plant Holding Area
     # -----------------------------------------------------------------------
     with tab_whole:
-        st.markdown("### 🌿 Segregated Whole-Plant Holding Area")
-        st.info(
-            "Whole-plant bush photographs contain multiple overlapping buds under varying shadows. "
-            "They are strictly excluded from single-bud classification to prevent noise, and will be annotated "
-            "with bounding boxes for YOLO in Phase 7."
-        )
+        w_head = "முழு செடி சேமிப்பு" if current_lang == "ta" else ("మొత్తం మొక్కల నిల్వ" if current_lang == "te" else "Whole-Plant Holding Area")
+        st.markdown(f"### 🌿 {w_head}")
         if scan["whole_plant_files"]:
-            st.markdown(f"**Staged Whole-Plant Images ({len(scan['whole_plant_files'])}):**")
+            st.write(f"Staged ({len(scan['whole_plant_files'])}):")
             for wp in scan["whole_plant_files"]:
                 st.write(f" • `{Path(wp).name}`")
         else:
-            st.caption("No whole-plant photographs currently in holding queue.")
+            empty_wp = "புகைப்படங்கள் எதுவும் இல்லை." if current_lang == "ta" else ("ఇంకా ఫోటోలు లేవు." if current_lang == "te" else "No photos in queue.")
+            st.caption(empty_wp)

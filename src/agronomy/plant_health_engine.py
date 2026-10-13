@@ -14,6 +14,7 @@ VISIBLE_SYMPTOMS_CATALOG: Dict[str, Dict[str, Any]] = {
         "id": "yellowing_older_leaves",
         "name_en": "Yellowing of Older Lower Leaves",
         "name_ta": "முதிர்ந்த கீழ் இலைகள் மஞ்சள் நிறமாதல்",
+        "name_te": "ముదిరిన క్రింది ఆకులు పసుపు రంగులోకి మారడం",
         "plant_part": "Older lower leaves",
         "description": "General loss of green chlorophyll starting uniformly from bottom mature leaves.",
     },
@@ -21,6 +22,7 @@ VISIBLE_SYMPTOMS_CATALOG: Dict[str, Dict[str, Any]] = {
         "id": "yellowing_young_leaves",
         "name_en": "Interveinal Yellowing on Young Tender Leaves",
         "name_ta": "புதிய இளந்தளிர்களில் நரம்புகளுக்கு இடையே மஞ்சள் நிறமாதல்",
+        "name_te": "లేత కొత్త ఆకుల ఈనెల మధ్య పసుపు రంగులోకి మారడం",
         "plant_part": "New tender flush",
         "description": "Leaf blade turns pale yellow while veins remain sharply green (interveinal chlorosis).",
     },
@@ -28,6 +30,7 @@ VISIBLE_SYMPTOMS_CATALOG: Dict[str, Dict[str, Any]] = {
         "id": "curled_leaves_downward",
         "name_en": "Downwards Curled / Crinkled Leaves",
         "name_ta": "இலைகள் கீழ்நோக்கி சுருங்குதல்",
+        "name_te": "ఆకులు క్రిందికి ముడుచుకోవడం",
         "plant_part": "New leaves and shoot tips",
         "description": "Leaf margins curl downwards with crinkled or puckered surface texture.",
     },
@@ -35,6 +38,7 @@ VISIBLE_SYMPTOMS_CATALOG: Dict[str, Dict[str, Any]] = {
         "id": "curled_leaves_upward",
         "name_en": "Upwards Cupping / Stippled Speckling",
         "name_ta": "இலைகள் மேல்நோக்கி கிண்ணம் போல் சுருங்குதல்",
+        "name_te": "ఆకులు పైకి దోనెలా ముడుచుకోవడం",
         "plant_part": "Mid to upper foliage",
         "description": "Leaves cup upwards, fine speckling/bronzing, dusty look on leaf underside.",
     },
@@ -42,6 +46,7 @@ VISIBLE_SYMPTOMS_CATALOG: Dict[str, Dict[str, Any]] = {
         "id": "bud_bore_holes",
         "name_en": "Bore Holes with Frass in Flower Buds",
         "name_ta": "மொட்டுகளில் துளையிடப்பட்டு புழு கழிவுகள் இருத்தல்",
+        "name_te": "మొగ్గలలో రంధ్రాలు మరియు పురుగు విసర్జన ఉండటం",
         "plant_part": "Flower buds",
         "description": "Small circular entry holes bored into flower buds with dark brownish fecal pellets (frass).",
     },
@@ -49,6 +54,7 @@ VISIBLE_SYMPTOMS_CATALOG: Dict[str, Dict[str, Any]] = {
         "id": "bud_webbing",
         "name_en": "Silken Webbing Binding Flower Clusters",
         "name_ta": "மொட்டு கொத்துக்கள் வலைப் பின்னலால் இணைக்கப்பட்டிருத்தல்",
+        "name_te": "మొగ్గల గుత్తులు దారపు వలలా అల్లుకుపోవడం",
         "plant_part": "Flower bud cymes",
         "description": "Multiple flower buds webbed together with fine silk threads, hollowed inside.",
     },
@@ -56,13 +62,15 @@ VISIBLE_SYMPTOMS_CATALOG: Dict[str, Dict[str, Any]] = {
         "id": "bud_dropping_pale",
         "name_en": "Premature Pale / Pinkish Bud Drop",
         "name_ta": "மொட்டுகள் வெளிர்/இளஞ்சிவப்பு நிறமாகி உதிர்தல்",
+        "name_te": "లేత గులాబీ లేదా పాలిపోయిన మొగ్గలు రాలిపోవడం",
         "plant_part": "Flower buds and pedicels",
         "description": "Buds turn sickly pale or reddish-pink at the base, drying and detaching before harvest size.",
     },
     "stunted_shoots_wilt": {
         "id": "stunted_shoots_wilt",
         "name_en": "Stunted Shoots & Daytime Foliar Wilting",
-        "name_ta": "வளர்ச்சி குன்றி பகலில் வாடுதல் (ஈரமான நிலத்திலும்)",
+        "name_ta": "வளர்ச்சி குன்றி பகலில் வாடுதல்",
+        "name_te": "ఎదుగుదల లోపించి పగటిపూట ఆకులు వాలిపోవడం",
         "plant_part": "Entire branch or bush",
         "description": "Leaves droop during sunny midday despite moist ground; shoots exhibit short internodes.",
     },
@@ -70,6 +78,7 @@ VISIBLE_SYMPTOMS_CATALOG: Dict[str, Dict[str, Any]] = {
         "id": "black_sooty_coating",
         "name_en": "Black Powdery Film on Leaf Surface",
         "name_ta": "இலைகளின் மேல் கரும்பூஞ்சாணம் படர்தல்",
+        "name_te": "ఆకుల ఉపరితలంపై నల్లటి మసి పూత ఏర్పడటం",
         "plant_part": "Upper leaf surface",
         "description": "Superficial black mold wiping off with finger pressure, following sticky honeydew deposits.",
     },
@@ -80,7 +89,8 @@ VISIBLE_SYMPTOMS_CATALOG: Dict[str, Dict[str, Any]] = {
 DIFFERENTIAL_DIAGNOSES: Dict[str, Dict[str, Any]] = {
     "nitrogen_deficiency": {
         "cause_name_en": "Nitrogen Deficiency",
-        "cause_name_ta": "தழைச்சத்து (நைட்ரஜன்) குறைபாடு",
+        "cause_name_ta": "தழைச்சத்து குறைபாடு",
+        "cause_name_te": "నత్రజని లోపం",
         "category": "Nutrient Imbalance",
         "matching_symptoms": ["yellowing_older_leaves"],
         "supporting_indicators": [
@@ -105,6 +115,7 @@ DIFFERENTIAL_DIAGNOSES: Dict[str, Dict[str, Any]] = {
     "iron_chlorosis": {
         "cause_name_en": "Iron (Fe) / Zinc (Zn) Chlorosis",
         "cause_name_ta": "இரும்பு / துத்தநாக சத்து குறைபாடு (சுண்ணாம்பு நிலம்)",
+        "cause_name_te": "ఇనుము / జింక్ లోపం (సున్నపు నేలలు)",
         "category": "Nutrient Imbalance",
         "matching_symptoms": ["yellowing_young_leaves"],
         "supporting_indicators": [
@@ -129,6 +140,7 @@ DIFFERENTIAL_DIAGNOSES: Dict[str, Dict[str, Any]] = {
     "poor_drainage_root_suffocation": {
         "cause_name_en": "Waterlogging / Root Oxygen Deprivation",
         "cause_name_ta": "வடிகால் அடைப்பு / வேர் மூச்சுத்திணறல்",
+        "cause_name_te": "నీరు నిల్వ ఉండటం / వేర్లకు ప్రాణవాయువు లోపం",
         "category": "Physiological / Soil Physical",
         "matching_symptoms": ["yellowing_older_leaves", "stunted_shoots_wilt"],
         "supporting_indicators": [
@@ -152,7 +164,8 @@ DIFFERENTIAL_DIAGNOSES: Dict[str, Dict[str, Any]] = {
     },
     "jasmine_bud_worm": {
         "cause_name_en": "Jasmine Bud Worm (Hendecasis duplifascialis)",
-        "cause_name_ta": "மல்லி மொட்டுப்புழு (ஹெண்டேகாசிஸ்)",
+        "cause_name_ta": "மல்லி மொட்டுப்புழு தாக்குதல்",
+        "cause_name_te": "మల్లె మొగ్గ తొలుచు పురుగు",
         "category": "Entomological Pest",
         "matching_symptoms": ["bud_bore_holes", "bud_webbing"],
         "supporting_indicators": [
@@ -175,7 +188,8 @@ DIFFERENTIAL_DIAGNOSES: Dict[str, Dict[str, Any]] = {
     },
     "blossom_midge": {
         "cause_name_en": "Jasmine Blossom Midge (Contarinia maculipennis)",
-        "cause_name_ta": "மல்லி மொட்டு ஈ / தண்டு ஈ (காண்டரினியா)",
+        "cause_name_ta": "மல்லி மொட்டு ஈ தாக்குதல்",
+        "cause_name_te": "మల్లె మొగ్గ ఈగ",
         "category": "Entomological Pest",
         "matching_symptoms": ["bud_dropping_pale"],
         "supporting_indicators": [
@@ -198,7 +212,8 @@ DIFFERENTIAL_DIAGNOSES: Dict[str, Dict[str, Any]] = {
     },
     "red_spider_mites": {
         "cause_name_en": "Red Spider Mite (Tetranychus urticae)",
-        "cause_name_ta": "செம்பேன் (டெட்ரானிக்கஸ்)",
+        "cause_name_ta": "செம்பேன் தாக்குதல்",
+        "cause_name_te": "ఎర్ర నల్లి",
         "category": "Acarological Pest",
         "matching_symptoms": ["curled_leaves_upward"],
         "supporting_indicators": [
@@ -221,7 +236,8 @@ DIFFERENTIAL_DIAGNOSES: Dict[str, Dict[str, Any]] = {
     },
     "thrips": {
         "cause_name_en": "Jasmine Thrips (Thrips orientalis)",
-        "cause_name_ta": "மல்லி இலைப்பேன் (திரிப்ஸ்)",
+        "cause_name_ta": "மல்லி இலைப்பேன்",
+        "cause_name_te": "తామర పురుగులు",
         "category": "Entomological Pest",
         "matching_symptoms": ["curled_leaves_downward"],
         "supporting_indicators": [
@@ -243,6 +259,7 @@ DIFFERENTIAL_DIAGNOSES: Dict[str, Dict[str, Any]] = {
     "root_rot_collar_rot": {
         "cause_name_en": "Collar Rot / Root Rot (Sclerotium rolfsii / Fusarium)",
         "cause_name_ta": "வேரழுகல் / தண்டு அழுகல் நோய்",
+        "cause_name_te": "మొదలు కుళ్లు / వేరు కుళ్లు తెగులు",
         "category": "Fungal Plant Disease",
         "matching_symptoms": ["stunted_shoots_wilt", "yellowing_older_leaves"],
         "supporting_indicators": [

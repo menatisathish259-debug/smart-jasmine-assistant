@@ -3,18 +3,19 @@ Shared UI Components, Styling, and Agricultural Badges for Streamlit Interface.
 """
 
 import streamlit as st
-from config.settings import CROP_NAME_EN, CROP_NAME_TA, SOIL_PH_RANGE
+from config.settings import CROP_NAME_EN, CROP_NAME_TA, CROP_NAME_TE, SOIL_PH_RANGE
+from src.core.i18n import normalize_lang
 
 
 def inject_custom_css() -> None:
-    """Injects high-aesthetic, mobile-friendly botanical styling."""
+    """Injects high-aesthetic, mobile-friendly botanical styling with Tamil & Telugu typography."""
     st.markdown(
         """
         <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+Tamil:wght@400;600;700&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Noto+Sans+Tamil:wght@400;600;700&family=Noto+Sans+Telugu:wght@400;600;700&display=swap');
 
         html, body, [class*="css"] {
-            font-family: 'Plus Jakarta Sans', 'Noto Sans Tamil', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: 'Plus Jakarta Sans', 'Noto Sans Tamil', 'Noto Sans Telugu', -apple-system, BlinkMacSystemFont, sans-serif;
         }
 
         /* Top Header Banner */
@@ -129,10 +130,27 @@ def inject_custom_css() -> None:
     )
 
 
-def render_page_header(title_en: str, title_ta: str, subtitle_en: str, subtitle_ta: str, is_tamil: bool) -> None:
-    """Renders the top banner for each page."""
-    title = title_ta if is_tamil else title_en
-    subtitle = subtitle_ta if is_tamil else subtitle_en
+def render_page_header(
+    title_en: str,
+    title_ta: str,
+    subtitle_en: str,
+    subtitle_ta: str,
+    is_tamil: bool = False,
+    lang: str = "en",
+    title_te: str = "",
+    subtitle_te: str = "",
+) -> None:
+    """Renders the top banner for each page in pure single-language script."""
+    current_lang = normalize_lang(lang, is_tamil)
+    if current_lang == "ta":
+        title = title_ta
+        subtitle = subtitle_ta
+    elif current_lang == "te":
+        title = title_te if title_te else title_en
+        subtitle = subtitle_te if subtitle_te else subtitle_en
+    else:
+        title = title_en
+        subtitle = subtitle_en
 
     st.markdown(
         f"""
@@ -145,25 +163,58 @@ def render_page_header(title_en: str, title_ta: str, subtitle_en: str, subtitle_
     )
 
 
-def render_safety_warning(message_en: str, message_ta: str, is_tamil: bool) -> None:
-    """Renders prominent agricultural safety reminder to prevent incorrect diagnosis."""
-    message = message_ta if is_tamil else message_en
+def render_safety_warning(
+    message_en: str,
+    message_ta: str,
+    is_tamil: bool = False,
+    lang: str = "en",
+    message_te: str = "",
+) -> None:
+    """Renders prominent agricultural safety reminder in pure single-language script."""
+    current_lang = normalize_lang(lang, is_tamil)
+    if current_lang == "ta":
+        prefix = "விவசாய பாதுகாப்பு அறிவிப்பு"
+        message = message_ta
+    elif current_lang == "te":
+        prefix = "వ్యవసాయ భద్రతా సమాచారం"
+        message = message_te if message_te else message_en
+    else:
+        prefix = "Agricultural Safety Notice"
+        message = message_en
+
     st.markdown(
         f"""
         <div class="safety-banner">
-            ⚠️ <b>Agricultural Safety Notice:</b> {message}
+            ⚠️ <b>{prefix}:</b> {message}
         </div>
         """,
         unsafe_allow_html=True,
     )
 
 
-def render_ai_status(phase_description_en: str, is_tamil: bool) -> None:
-    """Renders honest AI status badge without fake predictions."""
+def render_ai_status(
+    phase_description_en: str,
+    is_tamil: bool = False,
+    lang: str = "en",
+    desc_ta: str = "",
+    desc_te: str = "",
+) -> None:
+    """Renders honest AI status badge in pure single-language script."""
+    current_lang = normalize_lang(lang, is_tamil)
+    if current_lang == "ta":
+        prefix = "செயற்கை நுண்ணறிவு நிலை"
+        desc = desc_ta if desc_ta else "களத் தரவு மற்றும் வேளாண் விதிகள் சரிபார்க்கப்பட்டன."
+    elif current_lang == "te":
+        prefix = "కృత్రిమ మేధస్సు స్థితి"
+        desc = desc_te if desc_te else "క్షేత్ర స్థాయి డేటా నమోదు మరియు వ్యవసాయ నియమాలు ధృవీకరించబడ్డాయి."
+    else:
+        prefix = "AI Status"
+        desc = phase_description_en
+
     st.markdown(
         f"""
         <div class="ai-status-badge">
-            🔬 <b>AI Status:</b> {phase_description_en}
+            🔬 <b>{prefix}:</b> {desc}
         </div>
         """,
         unsafe_allow_html=True,

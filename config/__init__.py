@@ -11,6 +11,10 @@ from config.settings import (
     FLOWER_STAGES,
     SOIL_PH_RANGE,
     TAMIL_STAGE_TRANSLATIONS,
+    TELUGU_STAGE_TRANSLATIONS,
+    CROP_NAME_EN,
+    CROP_NAME_TA,
+    CROP_NAME_TE,
 )
 
 __all__ = [
@@ -24,4 +28,8 @@ __all__ = [
     "FLOWER_STAGES",
     "SOIL_PH_RANGE",
     "TAMIL_STAGE_TRANSLATIONS",
+    "TELUGU_STAGE_TRANSLATIONS",
+    "CROP_NAME_EN",
+    "CROP_NAME_TA",
+    "CROP_NAME_TE",
 ]

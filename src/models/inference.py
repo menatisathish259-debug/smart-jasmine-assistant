@@ -10,7 +10,7 @@ from PIL import Image
 import tensorflow as tf
 from tensorflow import keras
 
-from config.settings import MODELS_DIR, FLOWER_STAGES, TAMIL_STAGE_TRANSLATIONS
+from config.settings import MODELS_DIR, FLOWER_STAGES, TAMIL_STAGE_TRANSLATIONS, TELUGU_STAGE_TRANSLATIONS
 from src.core.constants import HARVEST_GUIDANCE
 
 _LOADED_MODEL: Optional[keras.Model] = None
@@ -90,6 +90,7 @@ def predict_flower_stage(
         "status": "SUCCESS",
         "predicted_stage": top_stage,
         "predicted_stage_ta": TAMIL_STAGE_TRANSLATIONS.get(top_stage, top_stage),
+        "predicted_stage_te": TELUGU_STAGE_TRANSLATIONS.get(top_stage, top_stage),
         "confidence_pct": round(confidence * 100.0, 2),
         "uncertainty_score": uncertainty,
         "probabilities": distribution,
