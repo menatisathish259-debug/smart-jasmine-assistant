@@ -123,17 +123,32 @@ setup_env.bat
 | Phase | Description | Status |
 |---|---|---|
 | **Phase 1** | Project structure, constants, and Windows setup | ✅ Completed |
-| **Phase 2** | Responsive Streamlit interface & mobile layout (7 pages) | ✅ Completed |
-| **Phase 3** | SQLite database, relational schema & persistent records | ✅ Completed |
+| **Phase 2** | Responsive Streamlit interface & mobile layout (8 pages) | ✅ Completed |
+| **Phase 3** | SQLite database, relational schema (11 tables) & persistent records | ✅ Completed |
 | **Phase 4** | Dataset organization, duplicate audit & labeling workflow | ✅ Completed |
 | **Phase 5** | Flower-stage classification model (MobileNetV2 transfer learning) | ✅ Completed |
-| **Phase 6** | Model evaluation, error analysis & uncertainty | ⏳ In Progress |
-| **Phase 7** | Whole-plant bud detection (YOLO) | 📅 Planned |
-| **Phase 8** | Plant health observations, differential hypotheses & scouting | ✅ Completed |
+| **Phase 6** | Model evaluation calibration & large-scale field dataset gathering | 📅 Planned |
+| **Phase 7** | Whole-plant bud detection (YOLO object detection) | 📅 Planned |
+| **Phase 8** | Plant health observations, differential hypotheses & scientific scouting | ✅ Completed |
 | **Phase 9** | Fertilizer label verification, nutrient accounting & TNAU budget | ✅ Completed |
 | **Phase 10** | Soil health & weather integration with agronomic advisories | ✅ Completed |
-| **Phase 11** | Evidence-based recommendation engine | ⏳ Next |
-| **Phase 12** | Integrated dashboard, testing & deployment | 📅 Planned |
+| **Phase 11** | Automated multi-sensor recommendation engine | 📅 Planned |
+| **Phase 12** | Integrated testing, delivery & verification suite (62 tests) | ✅ Completed |
+
+---
+
+## 📚 Project Documentation & Delivery Assets
+
+Detailed technical, agronomic, and academic documentation is available in the [`docs/`](file:///C:/Users/m.sathish/.gemini/antigravity-ide/scratch/smart-jasmine-assistant/docs/) directory:
+
+- [Setup & Installation Guide](file:///C:/Users/m.sathish/.gemini/antigravity-ide/scratch/smart-jasmine-assistant/docs/SETUP_GUIDE.md) — 1-click Windows setup scripts, virtual environment commands, and troubleshooting.
+- [Grower & User Manual](file:///C:/Users/m.sathish/.gemini/antigravity-ide/scratch/smart-jasmine-assistant/docs/USER_GUIDE.md) — Step-by-step instructions for daily harvesting, photo staging, fertilizer accounting, and symptom scouting in English and Tamil.
+- [System Architecture](file:///C:/Users/m.sathish/.gemini/antigravity-ide/scratch/smart-jasmine-assistant/docs/ARCHITECTURE.md) — 4-tier architectural specification, SQLite 11-table relational schema, and MobileNetV2 edge pipeline.
+- [Dataset Documentation](file:///C:/Users/m.sathish/.gemini/antigravity-ide/scratch/smart-jasmine-assistant/docs/DATASET_DOCUMENTATION.md) — 4-class taxonomy, SHA-256 + perceptual dHash duplicate removal, leak-free partitioning, and field photography protocol.
+- [Evaluation Report & Limitations](file:///C:/Users/m.sathish/.gemini/antigravity-ide/scratch/smart-jasmine-assistant/docs/EVALUATION_REPORT.md) — Quantitative verification results, mock checkpoint calibration, commercial harvest risk analysis, and agronomic limitations.
+- [Academic Report Outline](file:///C:/Users/m.sathish/.gemini/antigravity-ide/scratch/smart-jasmine-assistant/docs/ACADEMIC_REPORT_OUTLINE.md) — Complete 8-chapter engineering thesis / capstone project structure.
+- [Presentation Outline](file:///C:/Users/m.sathish/.gemini/antigravity-ide/scratch/smart-jasmine-assistant/docs/PRESENTATION_OUTLINE.md) — 10-slide deck outline for project defense or agricultural technology pitch.
+
 
 
 
