@@ -8,6 +8,7 @@ import streamlit as st
 
 from config.settings import SOIL_PH_RANGE
 from src.core.validation import validate_soil_ph
+from src.database.repository import add_soil_test, get_soil_tests
 from src.ui.components import render_page_header, render_ai_status, render_safety_warning
 from src.ui.state import add_soil_record
 
@@ -120,8 +121,21 @@ def render_soil_health(is_tamil: bool) -> None:
                 "available_k": k_status,
                 "notes": notes or "Standard soil test logged.",
             }
+            add_soil_test(
+                test_date=str(test_date),
+                sampling_location=sample_location,
+                ph=ph_value,
+                texture=texture,
+                drainage=drainage,
+                ec_dsm=ec_value,
+                organic_carbon_pct=organic_c,
+                available_n=n_status,
+                available_p=p_status,
+                available_k=k_status,
+                notes=notes or "Standard soil test logged.",
+            )
             add_soil_record(record)
-            st.success("✅ Soil test report logged successfully!")
+            st.success("✅ Soil test report logged successfully in database!")
 
     with col_eval:
         st.markdown("### 🔬 2. Real-Time Soil Constraint Evaluation")
@@ -163,7 +177,13 @@ def render_soil_health(is_tamil: bool) -> None:
     # -----------------------------------------------------------------------
     st.markdown("---")
     st.markdown("### 📋 Soil Test History (மண் பரிசோதனை வரலாறு)")
-    if st.session_state.soil_test_records:
+    db_soil_records = get_soil_tests()
+    if db_soil_records:
+        import pandas as pd
+        df = pd.DataFrame(db_soil_records)
+        disp_cols = [c for c in ["test_date", "sampling_location", "ph", "texture", "drainage", "ec_dsm", "organic_carbon_pct", "available_n", "available_p", "available_k"] if c in df.columns]
+        st.dataframe(df[disp_cols], use_container_width=True, hide_index=True)
+    elif st.session_state.soil_test_records:
         import pandas as pd
         df = pd.DataFrame(st.session_state.soil_test_records)
         disp_cols = [c for c in ["date", "location", "ph", "texture", "drainage", "ec_dsm", "organic_carbon_pct", "available_n", "available_p", "available_k"] if c in df.columns]

@@ -82,6 +82,44 @@ def get_fertilizer_products(db_path: Optional[Path] = None) -> List[Dict[str, An
         return [dict(r) for r in rows]
 
 
+def add_fertilizer_product(
+    product_name: str,
+    category: str,
+    formulation_n: float = 0.0,
+    formulation_p: float = 0.0,
+    formulation_k: float = 0.0,
+    secondary_nutrients: Optional[str] = None,
+    manufacturer: Optional[str] = None,
+    notes: Optional[str] = None,
+    db_path: Optional[Path] = None,
+) -> int:
+    """Adds or updates a verified fertilizer product formulation."""
+    npk_ratio_str = f"{formulation_n:.0f}-{formulation_p:.0f}-{formulation_k:.0f}"
+    instructions = f"Secondary: {secondary_nutrients or 'None'}. Notes: {notes or ''}".strip()
+    with get_db_connection(db_path) as conn:
+        cur = conn.execute(
+            """
+            INSERT INTO fertilizer_products (
+                product_name, category, npk_ratio, n_percent, p_percent, k_percent,
+                manufacturer, label_instructions
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(product_name) DO UPDATE SET
+                category = excluded.category,
+                npk_ratio = excluded.npk_ratio,
+                n_percent = excluded.n_percent,
+                p_percent = excluded.p_percent,
+                k_percent = excluded.k_percent,
+                manufacturer = excluded.manufacturer,
+                label_instructions = excluded.label_instructions
+            """,
+            (
+                product_name, category, npk_ratio_str, formulation_n, formulation_p, formulation_k,
+                manufacturer, instructions,
+            ),
+        )
+        return cur.lastrowid
+
+
 def add_fertilizer_application(
     product_name: str,
     category: str,
@@ -150,6 +188,41 @@ def get_total_nutrients_applied(db_path: Optional[Path] = None) -> Dict[str, flo
         }
 
 
+def get_cumulative_nutrients_by_section(
+    section_id: Optional[int] = None,
+    db_path: Optional[Path] = None,
+) -> Dict[str, float]:
+    """Calculates total kg of N, P, K applied to a specific garden section (or whole farm)."""
+    with get_db_connection(db_path) as conn:
+        if section_id is not None:
+            row = conn.execute(
+                """
+                SELECT 
+                    COALESCE(SUM(n_supplied_kg), 0.0) as total_n,
+                    COALESCE(SUM(p_supplied_kg), 0.0) as total_p,
+                    COALESCE(SUM(k_supplied_kg), 0.0) as total_k
+                FROM fertilizer_applications
+                WHERE section_id = ?
+                """,
+                (section_id,),
+            ).fetchone()
+        else:
+            row = conn.execute(
+                """
+                SELECT 
+                    COALESCE(SUM(n_supplied_kg), 0.0) as total_n,
+                    COALESCE(SUM(p_supplied_kg), 0.0) as total_p,
+                    COALESCE(SUM(k_supplied_kg), 0.0) as total_k
+                FROM fertilizer_applications
+                """
+            ).fetchone()
+        return {
+            "total_n": round(row["total_n"], 2),
+            "total_p": round(row["total_p"], 2),
+            "total_k": round(row["total_k"], 2),
+        }
+
+
 # ---------------------------------------------------------------------------
 # 4. Soil Tests CRUD
 # ---------------------------------------------------------------------------
@@ -200,6 +273,37 @@ def get_soil_tests(db_path: Optional[Path] = None) -> List[Dict[str, Any]]:
         return [dict(r) for r in rows]
 
 
+def get_latest_soil_test_by_section(
+    section_id: Optional[int] = None,
+    db_path: Optional[Path] = None,
+) -> Optional[Dict[str, Any]]:
+    """Returns the most recent soil test record for a section (or overall if section_id is None)."""
+    with get_db_connection(db_path) as conn:
+        if section_id is not None:
+            row = conn.execute(
+                """
+                SELECT t.*, s.section_name
+                FROM soil_tests t
+                LEFT JOIN garden_sections s ON t.section_id = s.id
+                WHERE t.section_id = ?
+                ORDER BY t.test_date DESC, t.id DESC
+                LIMIT 1
+                """,
+                (section_id,),
+            ).fetchone()
+        else:
+            row = conn.execute(
+                """
+                SELECT t.*, s.section_name
+                FROM soil_tests t
+                LEFT JOIN garden_sections s ON t.section_id = s.id
+                ORDER BY t.test_date DESC, t.id DESC
+                LIMIT 1
+                """
+            ).fetchone()
+        return dict(row) if row else None
+
+
 # ---------------------------------------------------------------------------
 # 5. Irrigation & Pruning CRUD
 # ---------------------------------------------------------------------------
@@ -245,6 +349,39 @@ def get_irrigation_records(db_path: Optional[Path] = None) -> List[Dict[str, Any
             ORDER BY i.irrigation_date DESC, i.id DESC
             """
         ).fetchall()
+        return [dict(r) for r in rows]
+
+
+def get_recent_irrigation_by_section(
+    section_id: Optional[int] = None,
+    limit: int = 5,
+    db_path: Optional[Path] = None,
+) -> List[Dict[str, Any]]:
+    """Returns recent irrigation events for a section (or overall)."""
+    with get_db_connection(db_path) as conn:
+        if section_id is not None:
+            rows = conn.execute(
+                """
+                SELECT i.*, s.section_name
+                FROM irrigation_records i
+                LEFT JOIN garden_sections s ON i.section_id = s.id
+                WHERE i.section_id = ?
+                ORDER BY i.irrigation_date DESC, i.id DESC
+                LIMIT ?
+                """,
+                (section_id, limit),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                """
+                SELECT i.*, s.section_name
+                FROM irrigation_records i
+                LEFT JOIN garden_sections s ON i.section_id = s.id
+                ORDER BY i.irrigation_date DESC, i.id DESC
+                LIMIT ?
+                """,
+                (limit,),
+            ).fetchall()
         return [dict(r) for r in rows]
 
 
@@ -392,6 +529,26 @@ def get_plant_observations(db_path: Optional[Path] = None) -> List[Dict[str, Any
             """
         ).fetchall()
         return [dict(r) for r in rows]
+
+
+def update_plant_observation_diagnosis(
+    observation_id: int,
+    confirmed_diagnosis: str,
+    status: str = "Resolved",
+    notes: Optional[str] = None,
+    db_path: Optional[Path] = None,
+) -> bool:
+    """Updates a plant observation with laboratory/field confirmed diagnosis."""
+    with get_db_connection(db_path) as conn:
+        cur = conn.execute(
+            """
+            UPDATE plant_observations
+            SET confirmed_diagnosis = ?, status = ?, notes = COALESCE(?, notes)
+            WHERE id = ?
+            """,
+            (confirmed_diagnosis, status, notes, observation_id),
+        )
+        return cur.rowcount > 0
 
 
 # ---------------------------------------------------------------------------

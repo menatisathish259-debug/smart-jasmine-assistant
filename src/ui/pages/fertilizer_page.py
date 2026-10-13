@@ -1,207 +1,338 @@
 """
 Fertilizer Identification and Management Page (Module E).
-Records fertilizer applications, calculates nutrient contributions, and validates product labels.
+Records fertilizer applications, verifies bag label formulations, calculates active nutrient inputs,
+and provides TNAU-aligned decision support cross-referencing soil and weather conditions.
 """
 
 from datetime import date
 from PIL import Image
+import pandas as pd
 import streamlit as st
 
 from config.settings import FERTILIZER_CATEGORIES
-from src.core.constants import STANDARD_FERTILIZER_NPK
-from src.core.validation import validate_fertilizer_entry, validate_image_file
+from src.agronomy.fertilizer_calculator import (
+    STANDARD_FERTILIZER_DATABASE,
+    verify_fertilizer_formulation,
+    calculate_nutrient_inputs,
+    evaluate_jasmine_fertilizer_split,
+    TNAU_ANNUAL_DOSE_G_PER_PLANT,
+)
+from src.core.validation import validate_image_file
+from src.database.repository import (
+    get_garden_sections,
+    get_fertilizer_products,
+    add_fertilizer_product,
+    add_fertilizer_application,
+    get_fertilizer_applications,
+    get_total_nutrients_applied,
+    get_cumulative_nutrients_by_section,
+    get_recent_irrigation_by_section,
+)
 from src.ui.components import render_page_header, render_ai_status, render_safety_warning
 from src.ui.state import add_fertilizer_record
 
 
 def render_fertilizer_records(is_tamil: bool) -> None:
-    """Renders the fertilizer tracking and nutrient calculation page."""
+    """Renders the upgraded fertilizer management and nutrient accounting page."""
     render_page_header(
         title_en="Fertilizer Identification & Management (Module E)",
         title_ta="உர மேலாண்மை மற்றும் ஊட்டச்சத்து கணக்கீடு (பகுதி E)",
-        subtitle_en="Track organic and mineral fertilizer applications and calculate active nutrient contributions",
-        subtitle_ta="இயற்கை மற்றும் ரசாயன உரங்களை பதிவுசெய்து, பயிருக்கு கிடைத்த தழை, மணி, சாம்பல் சத்துக்களை கணக்கிடுங்கள்",
+        subtitle_en="Verify fertilizer formulations, calculate active NPK inputs, and align with TNAU Jasminum sambac standards",
+        subtitle_ta="உரங்களை முறைப்படி சரிபார்த்து, பயிருக்கு கிடைத்த தழை, மணி, சாம்பல் சத்துக்களை கணக்கிடுங்கள்",
         is_tamil=is_tamil,
     )
 
     render_ai_status(
-        phase_description_en="Nutrient Accounting Active. OCR label reading will be integrated in Phase 9. Always verify product grades directly from label text.",
+        phase_description_en="Nutrient Accounting & Formulation Verifier Active. Calculates elemental NPK delivered per bush. Cross-references rain forecast.",
         is_tamil=is_tamil,
     )
 
     render_safety_warning(
-        message_en="Never identify a fertilizer solely by package color or shape. Excessive nitrogen (Urea) produces lush green leaves with fewer flowers, and can cause root burn in dry soil.",
+        message_en="NEVER identify fertilizer solely by package color or shape. Excessive nitrogen (Urea) produces lush vegetative shoots with fewer flower buds, and causes chemical root burn in dry ground.",
         message_ta="பையின் நிறம் அல்லது வடிவத்தை மட்டும் வைத்து உரத்தை அடையாளம் காணாதீர்கள். அதிக தழைச்சத்து (யுரியா) இலை வளர்ச்சியை மட்டுமே கூட்டி பூக்களை குறைத்துவிடும்.",
         is_tamil=is_tamil,
     )
 
-    col_form, col_nutrients = st.columns([1, 1])
+    # Fetch database garden sections
+    db_sections = get_garden_sections()
+    section_map = {s["section_name"]: s for s in db_sections} if db_sections else {}
+    section_options = list(section_map.keys()) if section_map else [
+        "Section A (North Bed)", "Section B (South Bed)", "Section C (East Plot)", "Section D (West Plot)"
+    ]
 
-    with col_form:
-        st.markdown("### 📝 1. Log Fertilizer Application (உரமிடுதல் பதிவு)")
+    # Fetch custom registered products
+    registered_db_products = get_fertilizer_products()
+    product_choices = list(STANDARD_FERTILIZER_DATABASE.keys())
+    for p in registered_db_products:
+        if p["product_name"] not in product_choices:
+            product_choices.append(p["product_name"])
 
-        with st.form("fertilizer_log_form"):
-            category = st.selectbox(
-                "Fertilizer Category / உர வகை:",
-                options=FERTILIZER_CATEGORIES,
-                key="fert_category",
-            )
+    tab_app, tab_verify, tab_budget = st.tabs([
+        "📝 1. Log Application & Calculate NPK" if not is_tamil else "📝 1. உரமிடுதல் பதிவு & கணக்கீடு",
+        "🏷️ 2. Formulation Verifier & Label Entry" if not is_tamil else "🏷️ 2. உர ஆய்வு & லேபிள் பதிவு",
+        "📊 3. Seasonal Nutrient Budget" if not is_tamil else "📊 3. ஊட்டச்சத்து இருப்பு & TNAU இலக்கு",
+    ])
 
-            product_name = st.text_input(
-                "Product Brand / Trade Name / பெயர்:",
-                value="Urea (46% N)" if "Urea" in category else "Neem Coated Fertilizer",
-                help="Exact name printed on the bag label",
-                key="fert_name",
-            )
+    # -----------------------------------------------------------------------
+    # TAB 1: Log Application & Nutrient Accounting
+    # -----------------------------------------------------------------------
+    with tab_app:
+        col_form, col_calc = st.columns([1, 1])
 
-            col_q, col_d = st.columns(2)
+        with col_form:
+            st.markdown("### 📝 Log Fertilizer Application Event")
+
+            app_date = st.date_input("Application Date / தேதி:", value=date.today(), max_value=date.today(), key="fa_date")
+            chosen_sec_name = st.selectbox("Garden Section / பாத்தி:", options=section_options, key="fa_sec")
+            chosen_sec_obj = section_map.get(chosen_sec_name)
+            plant_count = chosen_sec_obj.get("plant_count", 500) if chosen_sec_obj else 500
+            sec_id = chosen_sec_obj.get("id") if chosen_sec_obj else None
+
+            # Weather Cross-Reference (Rain check)
+            recent_irrig = get_recent_irrigation_by_section(sec_id, limit=1)
+            forecast_rain = recent_irrig[0].get("forecast_rain_mm", 0.0) if recent_irrig else 0.0
+            if forecast_rain >= 15.0:
+                st.error(f"🌧️ WEATHER HAZARD: {forecast_rain:.1f} mm rain forecasted! Delay granular topdressing to prevent leaching.")
+
+            chosen_product_name = st.selectbox("Fertilizer Product / உரம்:", options=product_choices, key="fa_prod")
+
+            # Determine formulation defaults
+            default_n, default_p, default_k = 0.0, 0.0, 0.0
+            default_cat = "Chemical / Mineral"
+            if chosen_product_name in STANDARD_FERTILIZER_DATABASE:
+                std_info = STANDARD_FERTILIZER_DATABASE[chosen_product_name]
+                default_n = std_info["n_pct"]
+                default_p = std_info["p_pct"]
+                default_k = std_info["k_pct"]
+                default_cat = std_info["category"]
+            else:
+                for rp in registered_db_products:
+                    if rp["product_name"] == chosen_product_name:
+                        default_n = rp.get("formulation_n", 0.0)
+                        default_p = rp.get("formulation_p", 0.0)
+                        default_k = rp.get("formulation_k", 0.0)
+                        default_cat = rp.get("category", "Chemical / Mineral")
+                        break
+
+            st.caption(f"Guaranteed Analysis: **{default_n}% N - {default_p}% P₂O₅ - {default_k}% K₂O** ({default_cat})")
+
+            col_q, col_stg = st.columns(2)
             with col_q:
-                quantity_kg = st.number_input(
-                    "Quantity Applied (kg) / அளவு (கிலோ):",
-                    min_value=0.5,
-                    max_value=5000.0,
-                    value=25.0,
-                    step=5.0,
-                    key="fert_qty",
+                qty_kg = st.number_input("Quantity Applied (kg):", min_value=0.5, max_value=2000.0, value=25.0, step=5.0, key="fa_qty")
+            with col_stg:
+                split_stage = st.selectbox(
+                    "Crop Split Stage:",
+                    options=["flowering_flush", "post_pruning"],
+                    format_func=lambda x: "Peak Flowering Flush (Mar-Apr)" if x=="flowering_flush" else "Post-Pruning Basal (Dec-Jan)",
+                    key="fa_split",
                 )
-            with col_d:
-                app_date = st.date_input(
-                    "Application Date / தேதி:",
-                    value=date.today(),
-                    max_value=date.today(),
-                    key="fert_date",
-                )
-
-            area_treated = st.selectbox(
-                "Garden Section / Treated Area / இடப்பரப்பு:",
-                options=[
-                    "Entire Farm (0.5 Acre)",
-                    "Section A (North Bed)",
-                    "Section B (South Bed)",
-                    "Section C (East Plot)",
-                    "Section D (West Plot)",
-                    "Young Plants Only",
-                ],
-                key="fert_area",
-            )
 
             method = st.selectbox(
                 "Application Method / இடும் முறை:",
                 options=[
-                    "Ring application around root zone (15-20 cm away from trunk) + soil incorporation",
+                    "Ring application around root basin (15-20 cm away from trunk) + soil incorporation",
                     "Broadcasting before light hoeing",
                     "Foliar spray (water-soluble micronutrients/19-19-19)",
-                    "Basal application at annual pruning",
+                    "Basal incorporation at annual winter pruning",
                     "Fertigation (drip injection)",
                 ],
-                key="fert_method",
+                key="fa_method",
             )
 
-            reason = st.text_input(
-                "Reason for Application / நோக்கம்:",
-                placeholder="e.g., Post-pruning vegetative growth, bud development, flower flush boost",
-                key="fert_reason",
+            reason = st.text_input("Application Purpose:", placeholder="e.g. Flush boost before commercial festival harvest", key="fa_reason")
+
+            log_app_btn = st.button("💾 Record Fertilizer Application", use_container_width=True, type="primary")
+
+        # Real-time Nutrient Accounting Card
+        with col_calc:
+            st.markdown("### 📊 Active Nutrient Input Accounting")
+            st.caption(f"Calculated for **{qty_kg:.1f} kg** applied across **{plant_count} bushes** in {chosen_sec_name}:")
+
+            nutrients_res = calculate_nutrient_inputs(
+                quantity_kg=qty_kg,
+                n_pct=default_n,
+                p_pct=default_p,
+                k_pct=default_k,
+                plant_count=plant_count,
             )
 
-            submit_fert = st.form_submit_button("💾 Save Fertilizer Application", use_container_width=True)
+            deliv = nutrients_res["nutrients_delivered_kg"]
+            per_plant = nutrients_res["per_plant_g"]
 
-        if submit_fert:
-            is_valid, msg = validate_fertilizer_entry(product_name, quantity_kg, app_date, area_treated)
-            if not is_valid:
-                st.error(f"❌ {msg}")
+            c1, c2, c3 = st.columns(3)
+            with c1:
+                st.metric("Delivered N", f"{deliv['N']:.2f} kg", f"{per_plant['N_g']:.1f} g / bush")
+            with c2:
+                st.metric("Delivered P₂O₅", f"{deliv['P2O5']:.2f} kg", f"{per_plant['P2O5_g']:.1f} g / bush")
+            with c3:
+                st.metric("Delivered K₂O", f"{deliv['K2O']:.2f} kg", f"{per_plant['K2O_g']:.1f} g / bush")
+
+            # Evaluate against TNAU recommendations
+            eval_split = evaluate_jasmine_fertilizer_split(
+                n_applied_g_plant=per_plant["N_g"],
+                p_applied_g_plant=per_plant["P2O5_g"],
+                k_applied_g_plant=per_plant["K2O_g"],
+                split_stage=split_stage,
+            )
+
+            st.markdown(f"#### TNAU Alignment: {eval_split['stage_title']}")
+            if eval_split["safety_alerts"]:
+                for alert in eval_split["safety_alerts"]:
+                    st.error(alert)
             else:
-                # Estimate nutrients supplied
-                n_contrib, p_contrib, k_contrib = 0.0, 0.0, 0.0
-                for standard_name, npk_vals in STANDARD_FERTILIZER_NPK.items():
-                    if standard_name.lower() in category.lower() or standard_name.lower() in product_name.lower():
-                        n_contrib = round(quantity_kg * (npk_vals["N"] / 100.0), 2)
-                        p_contrib = round(quantity_kg * (npk_vals["P"] / 100.0), 2)
-                        k_contrib = round(quantity_kg * (npk_vals["K"] / 100.0), 2)
-                        break
+                st.success("✓ Application dose per bush is within safe agronomic thresholds.")
 
-                record = {
-                    "date": str(app_date),
-                    "section": area_treated,
-                    "product_name": product_name,
-                    "category": category,
-                    "quantity_kg": quantity_kg,
-                    "method": method,
-                    "reason": reason or "Seasonal maintenance.",
-                    "nutrients_estimated": f"N: {n_contrib} kg | P2O5: {p_contrib} kg | K2O: {k_contrib} kg",
-                    "n_kg": n_contrib,
-                    "p_kg": p_contrib,
-                    "k_kg": k_contrib,
-                }
-                add_fertilizer_record(record)
-                st.success(f"✅ Fertilizer record saved! Estimated active nutrients: N={n_contrib} kg, P={p_contrib} kg, K={k_contrib} kg.")
+            for note in eval_split["evaluation_notes"]:
+                st.info(f"💡 {note}")
 
-    with col_nutrients:
-        st.markdown("### 📊 2. Nutrient Contribution Summary")
-        st.caption("Cumulative nutrients supplied from all recorded applications:")
+            st.caption(f"Source: {eval_split['evidence_source']}")
 
-        total_n = sum(r.get("n_kg", 0.0) for r in st.session_state.fertilizer_records)
-        total_p = sum(r.get("p_kg", 0.0) for r in st.session_state.fertilizer_records)
-        total_k = sum(r.get("k_kg", 0.0) for r in st.session_state.fertilizer_records)
-
-        nk1, nk2, nk3 = st.columns(3)
-        with nk1:
-            st.markdown(
-                f"""
-                <div class="metric-tile" style="border-top:4px solid #1b4332;">
-                    <div class="metric-label">Total Nitrogen (N)</div>
-                    <div class="metric-value">{total_n:.2f} kg</div>
-                    <div class="metric-sub">Foliage & growth</div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-        with nk2:
-            st.markdown(
-                f"""
-                <div class="metric-tile" style="border-top:4px solid #d4a373;">
-                    <div class="metric-label">Total Phosphorus (P₂O₅)</div>
-                    <div class="metric-value">{total_p:.2f} kg</div>
-                    <div class="metric-sub">Rooting & bud initiation</div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-        with nk3:
-            st.markdown(
-                f"""
-                <div class="metric-tile" style="border-top:4px solid #52b788;">
-                    <div class="metric-label">Total Potassium (K₂O)</div>
-                    <div class="metric-value">{total_k:.2f} kg</div>
-                    <div class="metric-sub">Flower weight & fragrance</div>
-                </div>
-                """,
-                unsafe_allow_html=True,
+        # Handle Save Event
+        if log_app_btn:
+            app_id = add_fertilizer_application(
+                product_name=chosen_product_name,
+                category=default_cat,
+                quantity_kg=qty_kg,
+                application_date=str(app_date),
+                application_method=method,
+                section_id=sec_id,
+                reason=reason or "Seasonal application.",
+                n_supplied_kg=deliv["N"],
+                p_supplied_kg=deliv["P2O5"],
+                k_supplied_kg=deliv["K2O"],
+                notes=f"Calculated: {per_plant['N_g']}g N, {per_plant['P2O5_g']}g P, {per_plant['K2O_g']}g K per bush.",
             )
 
-        st.markdown("<br>", unsafe_allow_html=True)
-        st.markdown("### 🏷️ Product Label Photograph Upload")
-        uploaded_label = st.file_uploader(
-            "Upload bag label photograph for record verification:",
-            type=["jpg", "jpeg", "png", "webp"],
-            key="fert_label_uploader",
-        )
-        if uploaded_label:
-            v_ok, v_msg, v_meta = validate_image_file(uploaded_label)
+            add_fertilizer_record({
+                "date": str(app_date),
+                "section": chosen_sec_name,
+                "product_name": chosen_product_name,
+                "category": default_cat,
+                "quantity_kg": qty_kg,
+                "method": method,
+                "reason": reason,
+                "n_kg": deliv["N"],
+                "p_kg": deliv["P2O5"],
+                "k_kg": deliv["K2O"],
+            })
+            st.success(f"✅ Fertilizer application #{app_id} successfully saved to SQLite!")
+            st.rerun()
+
+    # -----------------------------------------------------------------------
+    # TAB 2: Formulation Verifier & Label Entry
+    # -----------------------------------------------------------------------
+    with tab_verify:
+        st.markdown("### 🏷️ Fertilizer Bag Label Verifier & Registry")
+        st.caption("Verify printed Guaranteed Analysis percentages before applying to farm beds:")
+
+        with st.form("label_verification_form"):
+            col_b1, col_b2 = st.columns(2)
+            with col_b1:
+                new_prod_name = st.text_input("Product Trade Name / Brand:", placeholder="e.g. Coromandel Gromor 17-17-17", key="lv_name")
+                new_category = st.selectbox("Product Classification:", options=FERTILIZER_CATEGORIES, key="lv_cat")
+                new_manufacturer = st.text_input("Manufacturer / Marketing Company:", placeholder="e.g. Coromandel International Ltd", key="lv_mfg")
+            with col_b2:
+                col_n, col_p, col_k = st.columns(3)
+                with col_n:
+                    input_n = st.number_input("Guaranteed N (%):", min_value=0.0, max_value=100.0, value=17.0, step=0.5, key="lv_n")
+                with col_p:
+                    input_p = st.number_input("Guaranteed P₂O₅ (%):", min_value=0.0, max_value=100.0, value=17.0, step=0.5, key="lv_p")
+                with col_k:
+                    input_k = st.number_input("Guaranteed K₂O (%):", min_value=0.0, max_value=100.0, value=17.0, step=0.5, key="lv_k")
+
+                input_secondary = st.text_input("Secondary / Micronutrients on Label:", placeholder="e.g. Sulphur 4%, Zinc 0.5%", key="lv_sec")
+
+            verify_submit = st.form_submit_button("🔍 Verify & Register Formulation", use_container_width=True)
+
+        if verify_submit:
+            if not new_prod_name:
+                st.error("Please provide a product trade name.")
+            else:
+                ver_res = verify_fertilizer_formulation(
+                    product_name=new_prod_name,
+                    category=new_category,
+                    n_pct=input_n,
+                    p_pct=input_p,
+                    k_pct=input_k,
+                    secondary_nutrients=input_secondary,
+                )
+
+                if not ver_res["is_valid"]:
+                    st.error(f"❌ Formulation Invalid: {'; '.join(ver_res['errors'])}")
+                else:
+                    st.success(f"✓ Valid Formulation! Total active macronutrients: **{ver_res['total_active_macro_pct']}%**.")
+                    for warn in ver_res["warnings"]:
+                        st.warning(warn)
+
+                    # Save to database
+                    add_fertilizer_product(
+                        product_name=new_prod_name,
+                        category=new_category,
+                        formulation_n=input_n,
+                        formulation_p=input_p,
+                        formulation_k=input_k,
+                        secondary_nutrients=input_secondary,
+                        manufacturer=new_manufacturer,
+                    )
+                    st.success(f"✓ '{new_prod_name}' registered in farm database!")
+                    st.rerun()
+
+        st.markdown("---")
+        st.markdown("#### 📸 Bag Label Photographic Upload")
+        st.caption("Store high-resolution photograph of product label for batch traceability:")
+        uploaded_bag_label = st.file_uploader("Upload label photo:", type=["jpg", "jpeg", "png", "webp"], key="bag_label_up")
+        if uploaded_bag_label:
+            v_ok, v_msg, v_meta = validate_image_file(uploaded_bag_label)
             if v_ok:
-                st.image(Image.open(uploaded_label), caption=f"Label photo: {uploaded_label.name}", use_container_width=True)
+                st.image(Image.open(uploaded_bag_label), caption=f"Label: {uploaded_bag_label.name}", use_container_width=True)
                 st.success(f"✓ Label image verified ({v_meta['size_kb']} KB)")
             else:
                 st.error(f"❌ {v_msg}")
 
     # -----------------------------------------------------------------------
-    # Fertilizer History Table
+    # TAB 3: Seasonal Nutrient Budget & TNAU Progress
     # -----------------------------------------------------------------------
-    st.markdown("---")
-    st.markdown("### 📋 Application Records (உரப் பதிவுகள்)")
-    if st.session_state.fertilizer_records:
-        import pandas as pd
-        df = pd.DataFrame(st.session_state.fertilizer_records)
-        display_cols = [c for c in ["date", "section", "product_name", "category", "quantity_kg", "method", "nutrients_estimated", "reason"] if c in df.columns]
-        st.dataframe(df[display_cols], use_container_width=True, hide_index=True)
-    else:
-        st.info("No fertilizer applications recorded yet.")
+    with tab_budget:
+        st.markdown("### 📊 Seasonal Garden Nutrient Budget vs TNAU Target")
+        st.caption("Cumulative kilograms of active nutrients delivered to the farm:")
+
+        totals = get_total_nutrients_applied()
+        m1, m2, m3 = st.columns(3)
+        with m1:
+            st.metric("Cumulative Nitrogen (N)", f"{totals['total_n']:.2f} kg", "TNAU: ~60g/plant/yr")
+        with m2:
+            st.metric("Cumulative Phosphorus (P₂O₅)", f"{totals['total_p']:.2f} kg", "TNAU: ~120g/plant/yr")
+        with m3:
+            st.metric("Cumulative Potassium (K₂O)", f"{totals['total_k']:.2f} kg", "TNAU: ~120g/plant/yr")
+
+        # Over-fertilization Risk Guardrail
+        total_plants = sum(s.get("plant_count", 0) for s in db_sections) if db_sections else 2000
+        if total_plants > 0:
+            avg_n_g = (totals["total_n"] * 1000.0) / total_plants
+            if avg_n_g > 65.0:
+                st.error(
+                    f"⚠️ HIGH NITROGEN ALERT ({avg_n_g:.1f} g N/bush across garden). "
+                    "Cumulative nitrogen has exceeded the annual recommended target. "
+                    "Withhold further urea applications to avoid flower bud shedding and bud worm outbreaks."
+                )
+
+        st.markdown("---")
+        st.markdown("### 📋 Historic Fertilizer Applications Log")
+        all_apps = get_fertilizer_applications()
+        if all_apps:
+            disp_apps = []
+            for a in all_apps:
+                disp_apps.append({
+                    "Date": a["application_date"],
+                    "Section": a.get("section_name") or "Whole Garden",
+                    "Product": a["product_name"],
+                    "Qty (kg)": a["quantity_kg"],
+                    "N (kg)": a["n_supplied_kg"],
+                    "P₂O₅ (kg)": a["p_supplied_kg"],
+                    "K₂O (kg)": a["k_supplied_kg"],
+                    "Method": a["application_method"],
+                    "Reason": a.get("reason") or "Routine application",
+                })
+            st.dataframe(pd.DataFrame(disp_apps), use_container_width=True, hide_index=True)
+        else:
+            st.info("No fertilizer applications logged in the database yet.")
