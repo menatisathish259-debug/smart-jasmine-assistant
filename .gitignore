@@ -1,0 +1,43 @@
+# Python Virtual Environment
+.venv/
+venv/
+ENV/
+env/
+
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Testing & Cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Environment Variables
+.env
+!.env.example
+
+# Local Data & Databases (keep placeholders/samples only)
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+!data/processed/.gitkeep
+data/db/*.db
+data/db/*.sqlite
+data/db/*.sqlite3
+
+# Trained Model Binaries & Weights
+models/*
+!models/.gitkeep
+
+# IDE / Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS Generated
+Thumbs.db
+Desktop.ini
+.DS_Store

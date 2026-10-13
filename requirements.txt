@@ -1,0 +1,16 @@
+# Core Web & UI
+streamlit>=1.35.0
+
+# Data Processing
+pandas>=2.2.0
+numpy>=1.26.0
+
+# Image & Media Handling
+pillow>=10.3.0
+
+# Network & APIs (Weather & Integrations)
+requests>=2.31.0
+python-dotenv>=1.0.0
+
+# Testing & Quality Assurance
+pytest>=8.0.0
