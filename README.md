@@ -124,8 +124,8 @@ setup_env.bat
 |---|---|---|
 | **Phase 1** | Project structure, constants, and Windows setup | ✅ Completed |
 | **Phase 2** | Responsive Streamlit interface & mobile layout (7 pages) | ✅ Completed |
-| **Phase 3** | SQLite database and farm record management | ⏳ Next |
-| **Phase 4** | Dataset organization & image labeling workflow | 📅 Planned |
+| **Phase 3** | SQLite database, relational schema & persistent records | ✅ Completed |
+| **Phase 4** | Dataset organization & image labeling workflow | ⏳ Next |
 | **Phase 5** | Flower-stage classification model (MobileNetV2 / CNN) | 📅 Planned |
 | **Phase 6** | Model evaluation, error analysis & uncertainty | 📅 Planned |
 | **Phase 7** | Whole-plant bud detection (YOLO) | 📅 Planned |
@@ -134,4 +134,5 @@ setup_env.bat
 | **Phase 10** | Soil health & weather API integration | 📅 Planned |
 | **Phase 11** | Evidence-based recommendation engine | 📅 Planned |
 | **Phase 12** | Integrated dashboard, testing & deployment | 📅 Planned |
+
 

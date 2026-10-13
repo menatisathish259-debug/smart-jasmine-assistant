@@ -20,16 +20,18 @@ def render_farm_history(is_tamil: bool) -> None:
     )
 
     render_ai_status(
-        phase_description_en="Unified Farm Journal Active. In Phase 3, these records will be saved to an ACID-compliant SQLite database file.",
+        phase_description_en="Persistent SQLite Database Active. All records are saved in ACID-compliant tables with foreign keys and automatic indexing (data/db/jasmine_farm.db).",
         is_tamil=is_tamil,
     )
 
-    tab_harvest, tab_health, tab_fert, tab_soil, tab_weath = st.tabs([
+    tab_harvest, tab_health, tab_fert, tab_soil, tab_weath, tab_prun, tab_sections = st.tabs([
         "🌸 Flower Harvests" if not is_tamil else "🌸 அறுவடைப் பதிவுகள்",
         "🍃 Plant Health" if not is_tamil else "🍃 பயிர் நலம்",
         "🧪 Fertilizer Logs" if not is_tamil else "🧪 உரப் பதிவுகள்",
         "🔬 Soil Tests" if not is_tamil else "🔬 மண் பரிசோதனை",
         "🌦️ Weather & Irrigation" if not is_tamil else "🌦️ வானிலை & பாசனம்",
+        "✂️ Pruning" if not is_tamil else "✂️ கவாத்து பதிவுகள்",
+        "🗺️ Farm & Sections" if not is_tamil else "🗺️ பாத்திகள் & பண்ணை",
     ])
 
     with tab_harvest:
@@ -46,7 +48,7 @@ def render_farm_history(is_tamil: bool) -> None:
                 key="dl_harvest",
             )
         else:
-            st.info("No flower harvest records found.")
+            st.info("No flower harvest records found in database.")
 
     with tab_health:
         st.markdown("### 🍃 Plant Health & Damage Observations")
@@ -62,7 +64,7 @@ def render_farm_history(is_tamil: bool) -> None:
                 key="dl_health",
             )
         else:
-            st.info("No plant health records found.")
+            st.info("No plant health observations found in database.")
 
     with tab_fert:
         st.markdown("### 🧪 Fertilizer & Nutrient Applications")
@@ -78,7 +80,7 @@ def render_farm_history(is_tamil: bool) -> None:
                 key="dl_fert",
             )
         else:
-            st.info("No fertilizer records found.")
+            st.info("No fertilizer records found in database.")
 
     with tab_soil:
         st.markdown("### 🔬 Soil Health Reports")
@@ -94,7 +96,7 @@ def render_farm_history(is_tamil: bool) -> None:
                 key="dl_soil",
             )
         else:
-            st.info("No soil test records found.")
+            st.info("No soil test records found in database.")
 
     with tab_weath:
         st.markdown("### 🌦️ Weather & Irrigation Logs")
@@ -110,4 +112,45 @@ def render_farm_history(is_tamil: bool) -> None:
                 key="dl_weath",
             )
         else:
-            st.info("No weather or irrigation records found.")
+            st.info("No weather or irrigation records found in database.")
+
+    with tab_prun:
+        st.markdown("### ✂️ Pruning Interventions (கவாத்து பதிவுகள்)")
+        if st.session_state.pruning_records:
+            df_p = pd.DataFrame(st.session_state.pruning_records)
+            st.dataframe(df_p, use_container_width=True, hide_index=True)
+            csv_p = df_p.to_csv(index=False).encode("utf-8")
+            st.download_button(
+                "📥 Export Pruning Records (CSV)",
+                data=csv_p,
+                file_name="jasmine_pruning_records.csv",
+                mime="text/csv",
+                key="dl_prun",
+            )
+        else:
+            st.info("No pruning records found. Winter annual pruning occurs in late Nov - Dec.")
+
+    with tab_sections:
+        st.markdown("### 🗺️ Garden Sections & Farm Profile")
+        if st.session_state.farm_profile:
+            fp = st.session_state.farm_profile
+            st.markdown(
+                f"""
+                <div class="farm-card">
+                    <b>Farm Name:</b> {fp['farm_name']}<br>
+                    <b>Grower:</b> {fp['grower_name']}<br>
+                    <b>Variety:</b> {fp['crop_variety']}<br>
+                    <b>Region:</b> {fp.get('region_district', 'Madurai')}<br>
+                    <b>Total Area:</b> {fp['total_area_acres']} Acres<br>
+                    <b>Method:</b> {fp['cultivation_method']}<br>
+                    <b>Soil Baseline:</b> {fp['baseline_soil_type']}<br>
+                    <span style="color:#64748b; font-size:0.8rem;">🔒 GPS Privacy Protected: Coordinates are not stored.</span>
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+        if st.session_state.garden_sections:
+            st.markdown("#### Cultivated Bed Sections:")
+            df_sec = pd.DataFrame(st.session_state.garden_sections)
+            st.dataframe(df_sec, use_container_width=True, hide_index=True)
+

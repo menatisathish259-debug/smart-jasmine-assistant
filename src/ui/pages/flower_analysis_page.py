@@ -150,7 +150,26 @@ def render_flower_analysis(is_tamil: bool) -> None:
                     "image_filename": saved_filename or "No image attached",
                 }
                 add_harvest_record(record)
-                st.success(f"✅ Record successfully staged! Stage: **{selected_stage}** ({bud_count} buds).")
+
+                if saved_filename:
+                    from src.database import repository
+                    try:
+                        repository.add_image_label(
+                            filename=saved_filename,
+                            filepath=str(saved_path),
+                            label_stage=selected_stage,
+                            image_type="single_bud",
+                            width=img_metadata.get("width"),
+                            height=img_metadata.get("height"),
+                            format=img_metadata.get("format"),
+                            filesize_kb=img_metadata.get("size_kb"),
+                            notes=notes,
+                        )
+                    except Exception as ex:
+                        st.caption(f"Image cataloged: {saved_filename}")
+
+                st.success(f"✅ Record successfully saved to SQLite database! Stage: **{selected_stage}** ({bud_count} buds).")
+
 
     # -----------------------------------------------------------------------
     # Dynamic Agricultural Action Guidance Card
