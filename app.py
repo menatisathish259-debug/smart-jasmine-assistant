@@ -27,6 +27,7 @@ from src.ui.pages.fertilizer_page import render_fertilizer_records
 from src.ui.pages.soil_health_page import render_soil_health
 from src.ui.pages.weather_page import render_weather_irrigation
 from src.ui.pages.farm_history_page import render_farm_history
+from src.ui.pages.dataset_page import render_dataset_page
 
 # ---------------------------------------------------------------------------
 # Page Configuration
@@ -77,6 +78,7 @@ with st.sidebar:
     pages_en = [
         "Dashboard",
         "Flower Analysis",
+        "Dataset and Labeling",
         "Plant Health",
         "Fertilizer Records",
         "Soil Health",
@@ -87,6 +89,7 @@ with st.sidebar:
     pages_ta = [
         "Dashboard (டாஷ்போர்டு)",
         "Flower Analysis (மலர் பகுப்பாய்வு)",
+        "Dataset and Labeling (தரவுத்தொகுப்பு)",
         "Plant Health (பயிர் நலம்)",
         "Fertilizer Records (உர மேலாண்மை)",
         "Soil Health (மண் நலம்)",
@@ -97,6 +100,7 @@ with st.sidebar:
     page_icons = {
         "Dashboard": "🌾",
         "Flower Analysis": "🌸",
+        "Dataset and Labeling": "📁",
         "Plant Health": "🍃",
         "Fertilizer Records": "🧪",
         "Soil Health": "🔬",
@@ -132,7 +136,7 @@ with st.sidebar:
             <b>Tamil:</b> {CROP_NAME_TA}<br>
             <b>Method:</b> Ground Soil Cultivation<br>
             <b>Target pH:</b> {SOIL_PH_RANGE['min_optimal']} - {SOIL_PH_RANGE['max_optimal']}<br>
-            <b>Build Phase:</b> Phase 2 (Multi-Page UI)
+            <b>Build Phase:</b> Phase 4 (Dataset & Labeling)
         </div>
         """,
         unsafe_allow_html=True,
@@ -147,6 +151,8 @@ if active_page == "Dashboard":
     render_dashboard(is_tamil=is_tamil)
 elif active_page == "Flower Analysis":
     render_flower_analysis(is_tamil=is_tamil)
+elif active_page == "Dataset and Labeling":
+    render_dataset_page(is_tamil=is_tamil)
 elif active_page == "Plant Health":
     render_plant_health(is_tamil=is_tamil)
 elif active_page == "Fertilizer Records":
@@ -159,3 +165,4 @@ elif active_page == "Farm History":
     render_farm_history(is_tamil=is_tamil)
 else:
     st.error(f"Unknown page: {active_page}")
+

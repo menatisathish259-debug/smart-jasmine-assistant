@@ -307,7 +307,7 @@ def add_image_label(
     notes: Optional[str] = None,
     db_path: Optional[Path] = None,
 ) -> int:
-    """Stores ground-truth photograph labels for dataset preparation."""
+    """Stores ground-truth photograph labels for dataset preparation (upserts on filename)."""
     with get_db_connection(db_path) as conn:
         cur = conn.execute(
             """
@@ -315,10 +315,22 @@ def add_image_label(
                 filename, filepath, section_id, image_type, label_stage, labeled_by,
                 width, height, format, filesize_kb, notes
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ON CONFLICT(filename) DO UPDATE SET
+                filepath = excluded.filepath,
+                section_id = excluded.section_id,
+                image_type = excluded.image_type,
+                label_stage = excluded.label_stage,
+                labeled_by = excluded.labeled_by,
+                width = excluded.width,
+                height = excluded.height,
+                format = excluded.format,
+                filesize_kb = excluded.filesize_kb,
+                notes = excluded.notes
             """,
             (filename, filepath, section_id, image_type, label_stage, labeled_by, width, height, format, filesize_kb, notes),
         )
         return cur.lastrowid
+
 
 
 def get_image_labels(db_path: Optional[Path] = None) -> List[Dict[str, Any]]:
